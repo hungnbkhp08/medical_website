@@ -145,6 +145,26 @@ const listAppointment = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
+const updatePaidAppointment = async (req, res) => {
+    try {
+        const { userId, appointmentId } = req.body;
+        const appointmentData = await appointmentModel.findById(appointmentId);
+        if (!appointmentData) {
+            return res.json({ success: false, message: 'Appointment not found' });
+        }
+
+        // Xác minh người dùng có phải là chủ lịch hẹn hay không
+        if (appointmentData.userId !== userId) {
+            return res.json({ success: false, message: 'Unauthorized action' });
+        }
+        await appointmentModel.findByIdAndUpdate(appointmentId, { payment: true });
+        return res.json({ success: true, message: 'Appointment payment successfully' });
+    }
+    catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+}
 //API to cancel apppointment 
 const cancelAppointment = async (req, res) => {
     try {
@@ -182,4 +202,4 @@ const cancelAppointment = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment }
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment };
