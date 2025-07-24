@@ -13,6 +13,7 @@ import Footer from './components/Footer';
 import { ToastContainer, toast } from 'react-toastify';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Chatbot from './components/Chatbot';
+import PatientChat from './pages/PatientChat';
 const App = () => {
   return (
     <div className='mx-4 sm:mx-[10%]'>
@@ -29,6 +30,7 @@ const App = () => {
         <Route path='/my-appointments' element={<MyAppointments />} />
         <Route path='/appointment/:docId' element={<Appointment />} />
         <Route path='/payment-success' element={<PaymentSuccess />} />
+        <Route path='/chat' element={<PatientChat />} />
       </Routes>
       <Footer/>
       <Chatbot />

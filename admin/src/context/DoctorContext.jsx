@@ -2,12 +2,15 @@ import { createContext, useState } from "react";
 export const DoctorContext= createContext()
 import { toast } from "react-toastify";
 import axios from "axios";
+import { useEffect } from "react";
 const DoctorContextProvider= (props)=>{
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const [dToken,setDToken]=useState(localStorage.getItem('dToken') ? localStorage.getItem('dToken') : '')
     const [appointments,setAppointments]= useState([])
     const [dashData,setDashData]= useState(false)
     const [profileData,setProfileData]= useState(false)
+    const [doctors,setDoctors]=useState([])
+    const [users,setUsers]=useState([])
     const getAppointments=async()=>{
         try {
             const {data}= await axios.post(backendUrl+'/api/doctor/appointments',{},{headers:{dToken}})
@@ -80,6 +83,45 @@ const DoctorContextProvider= (props)=>{
             toast.error(error.message)
         }
     }
+     const getDoctorData=async()=>{
+            try{
+                const {data}= await axios.get(backendUrl+'/api/doctor/list')
+                if(data.success){
+                    setDoctors(data.doctors)
+                } else{
+                    toast.error(data.message)
+                }
+            }
+            catch(error){
+                console.log(error)
+                toast.error(error.message)
+            }
+        }
+    const getUserData=async()=>{
+        try{
+            const {data}= await axios.get(backendUrl+'/api/user/list')
+            if(data.success){
+                setUsers(data.users)
+            }
+            else{
+                toast.error(data.message)
+            }
+        }
+        catch(error){
+            console.log(error)
+            toast.error(error.message)
+        }
+    }
+     useEffect(()=>{
+        getUserData()
+        },[])
+      useEffect(()=>{
+            if(dToken){
+                getProfileData()
+        } else{
+            setProfileData(false)
+        }
+        },[dToken])
     const value={
         dToken,setDToken,
         backendUrl,
@@ -93,7 +135,13 @@ const DoctorContextProvider= (props)=>{
         setDashData,
         getProfileData,
         profileData,
-        setProfileData
+        setProfileData,
+        getDoctorData,
+        doctors,
+        setDoctors,
+        getUserData,
+        users,
+        setUsers
     }
     return(
     <DoctorContext.Provider value={value}>

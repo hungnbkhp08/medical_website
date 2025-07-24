@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
+import { sendMail } from '../utils/sendMail.js';
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -124,6 +125,11 @@ const bookAppointment = async (req, res) => {
         const newAppointment = new appointmentModel(appointmentData);
         await newAppointment.save()
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
+        await sendMail(
+            userData.email,
+            'Xác nhận đặt lịch khám',
+            `Xin chào ${userData.name},\n\nBạn đã đặt lịch khám với bác sĩ ${docData.name} vào ngày ${slotDate} lúc ${slotTime}.\n\nTrân trọng!`
+          );
         res.json({ success: true, messange: "Appointment booked" })
 
     }
@@ -158,6 +164,12 @@ const updatePaidAppointment = async (req, res) => {
             return res.json({ success: false, message: 'Unauthorized action' });
         }
         await appointmentModel.findByIdAndUpdate(appointmentId, { payment: true });
+        const userData = await userModel.findById(userId).select('-password')
+        await sendMail(
+            userData.email,
+            'Thanh toán thành công',
+            `Xin chào ${userData.name},\n\nBạn đã thanh toán thành công cho lịch hẹn khám vào ngày ${appointmentData.slotDate} lúc ${appointmentData.slotTime}.\n\nTrân trọng!`
+          );
         return res.json({ success: true, message: 'Appointment payment successfully' });
     }
     catch (error) {
@@ -194,7 +206,12 @@ const cancelAppointment = async (req, res) => {
             // Cập nhật lại dữ liệu bác sĩ
             await doctorModel.findByIdAndUpdate(docId, { slots_booked });
         }
-
+        const userData = await userModel.findById(userId).select('-password');
+        await sendMail(
+            userData.email,
+            'Hủy lịch khám thành công',
+            `Xin chào ${userData.name},\n\nLịch khám của bạn vào ngày ${slotDate} lúc ${slotTime} đã được hủy thành công.\n\nTrân trọng!`
+          );
         return res.json({ success: true, message: 'Appointment cancelled successfully' });
     }
     catch (error) {
@@ -202,4 +219,14 @@ const cancelAppointment = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment };
+const getListUser = async (req, res) => {
+    try {
+        const users = await userModel.find({}).select(['-password', '-email'])
+        res.json({ success: true, users })
+    }
+    catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment,getListUser };

@@ -2,6 +2,8 @@ import doctorModel from "../models/doctorModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
+import { sendMail } from '../utils/sendMail.js';
+import userModel from "../models/userModel.js"
 const changeAvailablity = async (req, res) => {
     try {
         const { docId } = req.body
@@ -67,6 +69,13 @@ const markAppointmentCompleted = async (req, res) => {
         if (appointment && appointment.docId === docId) {
             appointment.isCompleted = true;
             await appointment.save();
+            // Send email to user about appointment completion
+            const userData = await userModel.findById(appointment.userId).select('-password');
+            await sendMail(
+                userData.email,
+                'Lịch hẹn đã hoàn tất',
+                `Xin chào ${userData.name},\n\nLịch hẹn của bạn với bác sĩ ${appointment.docData.name} vào ngày ${appointment.slotDate} lúc ${appointment.slotTime} đã được đánh dấu là hoàn tất.\n\nCảm ơn bạn đã sử dụng dịch vụ của chúng tôi. Chúc bạn luôn mạnh khỏe và bình an!\n\nTrân trọng,\nĐội ngũ hỗ trợ HealthCare Booking`
+            );            
             res.json({ success: true, message: "Appointment completed" });
         }
         else {
@@ -85,6 +94,13 @@ const cancelAppointment = async (req, res) => {
         if (appointment && appointment.docId === docId) {
             appointment.cancelled = true;
             await appointment.save();
+            // Send email to user about appointment cancellation
+            const userData = await userModel.findById(appointment.userId).select('-password');
+            await sendMail(
+                userData.email,
+                'Lịch hẹn đã bị hủy',
+                `Xin chào ${userData.name},\n\nLịch hẹn của bạn với bác sĩ ${appointment.docData.name} vào ngày ${appointment.slotDate} lúc ${appointment.slotTime} đã bị hủy.\n\nChúng tôi xin lỗi vì sự bất tiện này và hy vọng sẽ phục vụ bạn tốt hơn trong tương lai.\n\nTrân trọng,\nĐội ngũ hỗ trợ HealthCare Booking`
+            );
             res.json({ success: true, message: "Appointment cancelled" });
         }
         else {

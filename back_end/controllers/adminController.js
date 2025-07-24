@@ -5,6 +5,7 @@ import doctorModel from '../models/doctorModel.js';
 import jwt from 'jsonwebtoken';
 import appointmentModel from '../models/appointmentModel.js';
 import userModel from '../models/userModel.js';
+import { sendMail } from '../utils/sendMail.js';
 // API for adding doctor
 const addDoctor = async (req, res) => {
     try {
@@ -111,6 +112,12 @@ const cancelAppointment =async(req,res) =>{
             // Cập nhật lại dữ liệu bác sĩ
             await doctorModel.findByIdAndUpdate(docId, { slots_booked });
         }
+        const userData = await userModel.findById(appointmentData.userId).select('-password');
+        await sendMail(
+            userData.email,
+            'Hủy lịch khám thành công',
+            `Xin chào ${userData.name},\n\nLịch khám của bạn vào ngày ${slotDate} lúc ${slotTime} đã được hủy bởi hệ thống.\n\nTrân trọng!`
+          );
     
         return res.json({ success: true, message: 'Appointment cancelled successfully' });
     } 
