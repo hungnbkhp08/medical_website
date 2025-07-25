@@ -38,6 +38,7 @@ const httpServer = http.createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: '*' }
 });
+app.set('io', io);
 chatSocket(io);
 
 // 🚀 Khởi chạy server có socket

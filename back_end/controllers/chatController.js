@@ -54,12 +54,21 @@ export const sendMessage = async (req, res) => {
       content: content.trim(),
     });
 
+    // ✅ Emit từ backend qua socket
+    const io = req.app.get("io");
+    const receiverRoom = `${receiverRole}-${receiverId}`;
+    const senderRoom = `${senderRole}-${senderId}`;
+
+    io.to(receiverRoom).emit("receive_message", newMessage);
+    io.to(senderRoom).emit("message_sent", newMessage);
+
     res.json({ success: true, message: newMessage });
   } catch (error) {
     console.error('❌ Lỗi gửi tin nhắn:', error);
     res.json({ success: false, message: 'Gửi tin nhắn thất bại' });
   }
 };
+
 export const getConversationsList = async (req, res) => {
   const { id: myId, role: myRole } = req.user;
 

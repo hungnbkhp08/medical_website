@@ -22,8 +22,14 @@ const PatientChat = () => {
       auth: { token, role: "patient" },
     });
   
-    // ✅ Lắng nghe nhận tin nhắn
-    socket.current.on("receive_message", (message) => {
+    return () => {
+      socket.current?.disconnect();
+    };
+  }, [backendUrl, token, userData]);
+  useEffect(() => {
+    if (!socket.current) return;
+  
+    const handler = (message) => {
       if (
         message.sender.id === selectedDoctor?._id ||
         message.receiver.id === selectedDoctor?._id
@@ -31,7 +37,6 @@ const PatientChat = () => {
         setMessages((prev) => [...prev, message]);
       }
   
-      // ✅ Cập nhật lastMessage trong cuộc hội thoại
       setConversations((prev) =>
         prev.map((conv) =>
           conv.doctor._id ===
@@ -42,12 +47,15 @@ const PatientChat = () => {
             : conv
         )
       );
-    });
+    };
+  
+    socket.current.on("receive_message", handler);
   
     return () => {
-      socket.current?.disconnect();
+      socket.current.off("receive_message", handler); // cleanup tránh lặp listener
     };
-  }, [backendUrl, token, userData, selectedDoctor]);
+  }, [selectedDoctor]);
+    
   
 
   // Tự động cuộn xuống cuối
@@ -113,12 +121,13 @@ const PatientChat = () => {
   const handleSendMessage = async () => {
     if (!input.trim() || !selectedDoctor) return;
     try {
+      const content = input.trim();
       const { data } = await axios.post(
         `${backendUrl}/api/message`,
         {
           receiverId: selectedDoctor._id,
           receiverRole: "doctor",
-          content: input.trim(),
+          content,
           role: "patient",
         },
         { headers: { token } }
@@ -129,14 +138,8 @@ const PatientChat = () => {
         setMessages((prev) => [...prev, message]);
         setInput("");
   
-        // ✅ Gửi socket đúng format
-        socket.current?.emit("send_message", {
-          receiver: {
-            id: selectedDoctor._id,
-            role: "doctor",
-          },
-          content: input.trim(),
-        });
+        // ❌ KHÔNG cần emit nữa nếu BE đã emit ngược lại cho cả 2 phía
+        // socket.current?.emit("send_message", ...); // bỏ dòng này đi
       } else {
         toast.error(data.message);
       }
@@ -144,7 +147,7 @@ const PatientChat = () => {
       toast.error("Không gửi được tin nhắn");
       console.error(error);
     }
-  };
+  };  
   
   return (
     <div className="h-screen bg-gray-50 flex">

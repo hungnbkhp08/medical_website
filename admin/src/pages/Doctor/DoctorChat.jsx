@@ -15,39 +15,49 @@ const DoctorChat = () => {
   const messagesEndRef = useRef(null);
 
   // Kết nối socket
-  useEffect(() => {
-    if (!dToken || !profileData?._id) return;
-  
-    socket.current = io(backendUrl, {
-      auth: { dtoken:dToken, role: "doctor" },
-    });
-  
-    // ✅ Lắng nghe nhận tin nhắn
-    socket.current.on("receive_message", (message) => {
-      if (
-        message.sender.id === selected?._id ||
-        message.receiver.id === selected?._id
-      ) {
-        setMessages((prev) => [...prev, message]);
-      }
-  
-      // ✅ Cập nhật lastMessage trong cuộc hội thoại
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.patient._id ===
-          (message.sender.role === "patient"
-            ? message.sender.id
-            : message.receiver.id)
-            ? { ...conv, lastMessage: message }
-            : conv
-        )
-      );
-    });
-  
-    return () => {
-      socket.current?.disconnect();
-    };
-  },  [backendUrl, dToken, profileData]);
+  // 1️⃣ Khởi tạo socket (chỉ khi dToken và profileData có)
+useEffect(() => {
+  if (!dToken || !profileData?._id) return;
+
+  socket.current = io(backendUrl, {
+    auth: { dtoken: dToken, role: "doctor" },
+  });
+
+  return () => {
+    socket.current?.disconnect();
+  };
+}, [backendUrl, dToken, profileData]);
+
+// 2️⃣ Lắng nghe message (phụ thuộc selected)
+useEffect(() => {
+  if (!socket.current) return;
+
+  const handler = (message) => {
+    if (
+      message.sender.id === selected?._id ||
+      message.receiver.id === selected?._id
+    ) {
+      setMessages((prev) => [...prev, message]);
+    }
+
+    setConversations((prev) =>
+      prev.map((conv) =>
+        conv.patient._id ===
+        (message.sender.role === "patient"
+          ? message.sender.id
+          : message.receiver.id)
+          ? { ...conv, lastMessage: message }
+          : conv
+      )
+    );
+  };
+
+  socket.current.on("receive_message", handler);
+
+  return () => {
+    socket.current.off("receive_message", handler); // tránh lặp listener
+  };
+}, [selected]);
 
   // Nghe tin nhắn realtime
   // useEffect(() => {
@@ -144,13 +154,16 @@ const DoctorChat = () => {
   // Gửi tin nhắn
   const handleSendMessage = async () => {
     if (!input.trim() || !selected) return;
+  
     try {
+      const content = input.trim();
+  
       const { data } = await axios.post(
         `${backendUrl}/api/message`,
         {
           receiverId: selected._id,
           receiverRole: "patient",
-          content: input.trim(),
+          content,
           role: "doctor",
         },
         { headers: { dToken } }
@@ -161,14 +174,8 @@ const DoctorChat = () => {
         setMessages((prev) => [...prev, message]);
         setInput("");
   
-        // ✅ Gửi socket đúng format
-        socket.current?.emit("send_message", {
-          receiver: {
-            id: selected._id,
-            role: "patient",
-          },
-          content: input.trim(),
-        });
+        // ❌ KHÔNG cần emit nữa
+        // socket.current?.emit("send_message", { ... });
       } else {
         toast.error(data.message);
       }
@@ -176,7 +183,7 @@ const DoctorChat = () => {
       toast.error("Không gửi được tin nhắn");
       console.error(error);
     }
-  };
+  };  
   return (
     <div className="h-screen w-screen bg-gray-50 flex font-sans">
       {/* Sidebar trái */}
