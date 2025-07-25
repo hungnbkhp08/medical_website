@@ -1,5 +1,5 @@
 import React from 'react'
-import { Routes,Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import Home from './pages/Home';
 import Doctors from './pages/Doctors';
 import Login from './pages/Login'
@@ -10,14 +10,18 @@ import MyAppointments from './pages/MyAppointments';
 import Appointment from './pages/Appointment'
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { ToastContainer, toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Chatbot from './components/Chatbot';
 import PatientChat from './pages/PatientChat';
+
 const App = () => {
+  const location = useLocation();
+  const hideFooter = location.pathname === '/chat';
+
   return (
     <div className='mx-4 sm:mx-[10%]'>
-      <ToastContainer/>
+      <ToastContainer />
       <Navbar />
       <Routes>
         <Route path='/' element={<Home />} />
@@ -32,10 +36,10 @@ const App = () => {
         <Route path='/payment-success' element={<PaymentSuccess />} />
         <Route path='/chat' element={<PatientChat />} />
       </Routes>
-      <Footer/>
+      {!hideFooter && <Footer />}
       <Chatbot />
     </div>
-  );  
+  );
 }
 
 export default App

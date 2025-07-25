@@ -5,7 +5,6 @@ export default function chatSocket(io) {
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
     const dtoken = socket.handshake.auth?.dtoken;
-
     if (!token && !dtoken) {
       return next(new Error('❌ No token or dtoken provided'));
     }

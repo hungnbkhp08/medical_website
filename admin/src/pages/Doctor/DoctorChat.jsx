@@ -1,30 +1,135 @@
-import { useContext } from "react";
-import { useState } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import { DoctorContext } from "../../context/DoctorContext";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { useEffect } from "react";
+import { io } from "socket.io-client";
+
 const DoctorChat = () => {
   const [search, setSearch] = useState("");
-  const { backendUrl, dToken, users, doctors,profileData } = useContext(DoctorContext);
+  const { backendUrl, dToken, users, doctors, profileData } = useContext(DoctorContext);
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [conversations, setConversations] = useState([]);
+  const socket = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // Kết nối socket
+  useEffect(() => {
+    if (!dToken || !profileData?._id) return;
+  
+    socket.current = io(backendUrl, {
+      auth: { dtoken:dToken, role: "doctor" },
+    });
+  
+    // ✅ Lắng nghe nhận tin nhắn
+    socket.current.on("receive_message", (message) => {
+      if (
+        message.sender.id === selected?._id ||
+        message.receiver.id === selected?._id
+      ) {
+        setMessages((prev) => [...prev, message]);
+      }
+  
+      // ✅ Cập nhật lastMessage trong cuộc hội thoại
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.patient._id ===
+          (message.sender.role === "patient"
+            ? message.sender.id
+            : message.receiver.id)
+            ? { ...conv, lastMessage: message }
+            : conv
+        )
+      );
+    });
+  
+    return () => {
+      socket.current?.disconnect();
+    };
+  },  [backendUrl, dToken, profileData]);
+
+  // Nghe tin nhắn realtime
+  // useEffect(() => {
+  //   if (!socket.current) return;
+
+  //   const handleNewMessage = (message) => {
+  //     if (
+  //       message.sender.id === selected?._id ||
+  //       message.receiver.id === selected?._id
+  //     ) {
+  //       setMessages((prev) => [...prev, message]);
+  //     }
+
+  //     // Cập nhật lại danh sách cuộc hội thoại
+  //     setConversations((prevConvs) => {
+  //       const updated = prevConvs.map((conv) =>
+  //         conv.patient._id ===
+  //           (message.sender.role === "patient" ? message.sender.id : message.receiver.id)
+  //           ? { ...conv, lastMessage: message }
+  //           : conv
+  //       );
+  //       return updated;
+  //     });
+  //   };
+
+  //   socket.current.on("newMessage", handleNewMessage);
+
+  //   return () => {
+  //     socket.current.off("newMessage", handleNewMessage);
+  //   };
+  // }, [selected]);
+
+  // Cuộn xuống cuối khi có tin nhắn
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
+  // Lấy danh sách cuộc hội thoại
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/message/get-list`, {
+          headers: { dToken },
+        });
+        if (data.success) {
+          setConversations(data.conversations);
+        } else {
+          toast.error(data.message);
+        }
+      } catch (error) {
+        toast.error("Không thể tải danh sách cuộc hội thoại");
+        console.error(error);
+      }
+    };
+
+    if (dToken) fetchConversations();
+  }, [dToken]);
+
+  // Lấy tin nhắn khi chọn người
   useEffect(() => {
     const fetchMessages = async () => {
       if (!selected || !profileData?._id) return;
       try {
-        const { data } = await axios.post(`${backendUrl}/api/message/conversation`, {
-          otherId: selected._id,
-          otherRole: 'patient',
-          role:"doctor"
-        }, {
-          headers: { dToken },
-        });      
+        const { data } = await axios.post(
+          `${backendUrl}/api/message/conversation`,
+          {
+            otherId: selected._id,
+            otherRole: "patient",
+            role: "doctor",
+          },
+          {
+            headers: { dToken },
+          }
+        );
         if (data.success) {
-          setMessages(data.messages);
+          const sortedMessages = data.messages.sort(
+            (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+          );
+          setMessages(sortedMessages);
         } else {
-          console.log(dToken)
           toast.error(data.message);
         }
       } catch (error) {
@@ -32,8 +137,11 @@ const DoctorChat = () => {
         toast.error("Lỗi khi tải tin nhắn");
       }
     };
+
     fetchMessages();
   }, [selected, profileData]);
+
+  // Gửi tin nhắn
   const handleSendMessage = async () => {
     if (!input.trim() || !selected) return;
     try {
@@ -43,13 +151,24 @@ const DoctorChat = () => {
           receiverId: selected._id,
           receiverRole: "patient",
           content: input.trim(),
-          role:"doctor"
+          role: "doctor",
         },
         { headers: { dToken } }
       );
+  
       if (data.success) {
-        setMessages((prev) => [...prev, data.message]);
+        const message = data.message;
+        setMessages((prev) => [...prev, message]);
         setInput("");
+  
+        // ✅ Gửi socket đúng format
+        socket.current?.emit("send_message", {
+          receiver: {
+            id: selected._id,
+            role: "patient",
+          },
+          content: input.trim(),
+        });
       } else {
         toast.error(data.message);
       }
@@ -57,7 +176,7 @@ const DoctorChat = () => {
       toast.error("Không gửi được tin nhắn");
       console.error(error);
     }
-  };  
+  };
   return (
     <div className="h-screen w-screen bg-gray-50 flex font-sans">
       {/* Sidebar trái */}
@@ -70,34 +189,71 @@ const DoctorChat = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-         <div className="space-y-3">
-          {search.trim() === "" ? (
-            <p className="text-gray-400 text-sm italic">
-              Nhập tên bệnh nhân để bắt đầu tìm kiếm...
-            </p>
-          ) : (
-            users
-              .filter((u) =>
-                (u.name || "").toLowerCase().includes(search.toLowerCase())
-              )
-              .map((u) => (
+        <div className="space-y-3">
+          {search.trim() === ""
+            ? conversations.map((conv) => (
                 <div
-                  key={u._id}
-                  onClick={() => setSelected(u)}
-                  className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${selected?._id === u._id ? "bg-gray-100" : ""
-                    }`}
+                  key={conv.patient._id}
+                  onClick={() => setSelected(conv.patient)}
+                  className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${
+                    selected?._id === conv.patient._id ? "bg-gray-100" : ""
+                  }`}
                 >
                   <img
-                    src={u.image || "https://i.pravatar.cc/150?img=3"}
-                    alt={u.name}
+                    src={conv.patient.image || "https://i.pravatar.cc/150?img=3"}
+                    alt={conv.patient.name}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{u.name}</p>
+                    <p className="font-medium text-sm">{conv.patient.name}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {conv.lastMessage?.content || "Chưa có tin nhắn"}
+                    </p>
                   </div>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    {conv.lastMessage?.timestamp
+                      ? new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : ""}
+                  </span>
                 </div>
               ))
-          )}
+            : users
+                .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()))
+                .map((u) => {
+                  const conv = conversations.find((c) => c.patient._id === u._id);
+                  return (
+                    <div
+                      key={u._id}
+                      onClick={() => setSelected(u)}
+                      className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${
+                        selected?._id === u._id ? "bg-gray-100" : ""
+                      }`}
+                    >
+                      <img
+                        src={u.image || "https://i.pravatar.cc/150?img=3"}
+                        alt={u.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{u.name}</p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {conv?.lastMessage?.content || "Chưa có tin nhắn"}
+                        </p>
+                      </div>
+                      {conv?.lastMessage?.timestamp && (
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          {new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
         </div>
       </div>
 
@@ -110,7 +266,7 @@ const DoctorChat = () => {
               <img
                 src={selected.image || "https://i.pravatar.cc/150?img=3"}
                 className="w-10 h-10 rounded-full"
-                alt="Bác sĩ"
+                alt="Bệnh nhân"
               />
               <div>
                 <p className="font-medium text-base">{selected.name}</p>
@@ -127,23 +283,26 @@ const DoctorChat = () => {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${msg.sender.id === profileData?._id ? "justify-end" : "justify-start"
-                }`}
+              className={`flex ${
+                msg.sender.id === profileData?._id ? "justify-end" : "justify-start"
+              }`}
             >
               <div
-                className={`px-4 py-2 rounded-2xl text-sm max-w-xs ${msg.sender.id === profileData?._id
+                className={`px-4 py-2 rounded-2xl text-sm max-w-xs ${
+                  msg.sender.id === profileData?._id
                     ? "bg-blue-500 text-white rounded-br-none"
                     : "bg-white text-gray-800 border rounded-bl-none"
-                  }`}
+                }`}
               >
                 {msg.content}
               </div>
             </div>
           ))}
+          <div ref={messagesEndRef} />
         </div>
 
-     {/* Input */}
-     {selected && (
+        {/* Input */}
+        {selected && (
           <div className="p-4 border-t bg-white flex items-center gap-2">
             <input
               type="text"

@@ -2,17 +2,27 @@ import jwt from 'jsonwebtoken';
 
 const anyAuth = async (req, res, next) => {
   try {
-    const token = req.headers.token || req.headers.dtoken;
-    if (!token) {
+    const token = req.headers.token;
+    const dToken = req.headers.dtoken;
+
+    if (!token && !dToken) {
       return res.json({ success: false, message: "Thiếu token (user hoặc doctor)" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    let decoded;
+    let role;
 
-    // Gán thông tin vào req.user — nếu thiếu role thì lấy từ body hoặc query
+    if (dToken) {
+      decoded = jwt.verify(dToken, process.env.JWT_SECRET);
+      role = 'doctor';
+    } else if (token) {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      role = 'patient';
+    }
+
     req.user = {
       id: decoded.id,
-      role: decoded.role || req.body?.role || req.query?.role,
+      role: role,
     };
 
     if (!req.user.role) {
