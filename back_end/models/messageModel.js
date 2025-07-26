@@ -9,7 +9,8 @@ const messageSchema = new mongoose.Schema({
     id: { type: mongoose.Schema.Types.ObjectId, required: true },
     role: { type: String, enum: ['doctor', 'patient'], required: true }
   },
-  content: { type: String, required: true },
+  content: { type: String},
+  image: { type: String },
   timestamp: { type: Date, default: Date.now }
 });
 const messageModel = mongoose.model.message || mongoose.model('messages', messageSchema);

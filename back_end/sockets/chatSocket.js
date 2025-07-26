@@ -38,26 +38,27 @@ export default function chatSocket(io) {
     socket.join(room);
     console.log(`✅ ${role} ${id} connected and joined room ${room}`);
 
-    socket.on('send_message', async ({ receiver, content }) => {
+    socket.on('send_message', async ({ receiver, content, image }) => {
       try {
         const message = new messageModel({
           sender: { id, role },
           receiver,
-          content
+          content,
+          image, // thêm trường image nếu có
         });
-
+    
         await message.save();
-
+    
         const receiverRoom = `${receiver.role}-${receiver.id}`;
         io.to(receiverRoom).emit('receive_message', message);
-
+    
         const senderRoom = `${role}-${id}`;
         io.to(senderRoom).emit('message_sent', message);
       } catch (err) {
         console.error('💥 Error sending message:', err);
         socket.emit('error_message', 'Gửi tin nhắn thất bại');
       }
-    });
+    });    
 
     socket.on('disconnect', () => {
       console.log(`❌ ${role} ${id} disconnected`);

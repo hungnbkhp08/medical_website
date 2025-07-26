@@ -10,94 +10,59 @@ const DoctorChat = () => {
   const [selected, setSelected] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
+  const [image, setImage] = useState(null);
   const [conversations, setConversations] = useState([]);
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Kết nối socket
-  // 1️⃣ Khởi tạo socket (chỉ khi dToken và profileData có)
-useEffect(() => {
-  if (!dToken || !profileData?._id) return;
+  useEffect(() => {
+    if (!dToken || !profileData?._id) return;
 
-  socket.current = io(backendUrl, {
-    auth: { dtoken: dToken, role: "doctor" },
-  });
+    socket.current = io(backendUrl, {
+      auth: { dtoken: dToken, role: "doctor" },
+    });
 
-  return () => {
-    socket.current?.disconnect();
-  };
-}, [backendUrl, dToken, profileData]);
+    return () => {
+      socket.current?.disconnect();
+    };
+  }, [backendUrl, dToken, profileData]);
 
-// 2️⃣ Lắng nghe message (phụ thuộc selected)
-useEffect(() => {
-  if (!socket.current) return;
+  useEffect(() => {
+    if (!socket.current) return;
 
-  const handler = (message) => {
-    if (
-      message.sender.id === selected?._id ||
-      message.receiver.id === selected?._id
-    ) {
-      setMessages((prev) => [...prev, message]);
-    }
+    const handler = (message) => {
+      if (
+        message.sender.id === selected?._id ||
+        message.receiver.id === selected?._id
+      ) {
+        setMessages((prev) => [...prev, message]);
+      }
 
-    setConversations((prev) =>
-      prev.map((conv) =>
-        conv.patient._id ===
-        (message.sender.role === "patient"
-          ? message.sender.id
-          : message.receiver.id)
-          ? { ...conv, lastMessage: message }
-          : conv
-      )
-    );
-  };
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.patient._id ===
+          (message.sender.role === "patient"
+            ? message.sender.id
+            : message.receiver.id)
+            ? { ...conv, lastMessage: message }
+            : conv
+        )
+      );
+    };
 
-  socket.current.on("receive_message", handler);
+    socket.current.on("receive_message", handler);
 
-  return () => {
-    socket.current.off("receive_message", handler); // tránh lặp listener
-  };
-}, [selected]);
+    return () => {
+      socket.current.off("receive_message", handler);
+    };
+  }, [selected]);
 
-  // Nghe tin nhắn realtime
-  // useEffect(() => {
-  //   if (!socket.current) return;
-
-  //   const handleNewMessage = (message) => {
-  //     if (
-  //       message.sender.id === selected?._id ||
-  //       message.receiver.id === selected?._id
-  //     ) {
-  //       setMessages((prev) => [...prev, message]);
-  //     }
-
-  //     // Cập nhật lại danh sách cuộc hội thoại
-  //     setConversations((prevConvs) => {
-  //       const updated = prevConvs.map((conv) =>
-  //         conv.patient._id ===
-  //           (message.sender.role === "patient" ? message.sender.id : message.receiver.id)
-  //           ? { ...conv, lastMessage: message }
-  //           : conv
-  //       );
-  //       return updated;
-  //     });
-  //   };
-
-  //   socket.current.on("newMessage", handleNewMessage);
-
-  //   return () => {
-  //     socket.current.off("newMessage", handleNewMessage);
-  //   };
-  // }, [selected]);
-
-  // Cuộn xuống cuối khi có tin nhắn
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  // Lấy danh sách cuộc hội thoại
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -118,7 +83,6 @@ useEffect(() => {
     if (dToken) fetchConversations();
   }, [dToken]);
 
-  // Lấy tin nhắn khi chọn người
   useEffect(() => {
     const fetchMessages = async () => {
       if (!selected || !profileData?._id) return;
@@ -151,31 +115,30 @@ useEffect(() => {
     fetchMessages();
   }, [selected, profileData]);
 
-  // Gửi tin nhắn
   const handleSendMessage = async () => {
-    if (!input.trim() || !selected) return;
-  
+    if (!selected) return;
+    if (!input.trim() && !image) return;
+
     try {
-      const content = input.trim();
-  
-      const { data } = await axios.post(
-        `${backendUrl}/api/message`,
-        {
-          receiverId: selected._id,
-          receiverRole: "patient",
-          content,
-          role: "doctor",
+      const formData = new FormData();
+      formData.append("receiverId", selected._id);
+      formData.append("receiverRole", "patient");
+      formData.append("content", input.trim());
+      if (image) {
+        formData.append("image", image);
+      }
+
+      const { data } = await axios.post(`${backendUrl}/api/message`, formData, {
+        headers: {
+          dToken,
+          "Content-Type": "multipart/form-data",
         },
-        { headers: { dToken } }
-      );
-  
+      });
+
       if (data.success) {
-        const message = data.message;
-        setMessages((prev) => [...prev, message]);
+        setMessages((prev) => [...prev, data.message]);
         setInput("");
-  
-        // ❌ KHÔNG cần emit nữa
-        // socket.current?.emit("send_message", { ... });
+        setImage(null);
       } else {
         toast.error(data.message);
       }
@@ -183,7 +146,8 @@ useEffect(() => {
       toast.error("Không gửi được tin nhắn");
       console.error(error);
     }
-  };  
+  };
+
   return (
     <div className="h-screen w-screen bg-gray-50 flex font-sans">
       {/* Sidebar trái */}
@@ -295,12 +259,19 @@ useEffect(() => {
               }`}
             >
               <div
-                className={`px-4 py-2 rounded-2xl text-sm max-w-xs ${
+                className={`px-4 py-2 rounded-2xl text-sm max-w-xs break-words ${
                   msg.sender.id === profileData?._id
                     ? "bg-blue-500 text-white rounded-br-none"
                     : "bg-white text-gray-800 border rounded-bl-none"
                 }`}
               >
+                {msg.image && (
+                  <img
+                    src={msg.image}
+                    alt="Sent"
+                    className="mb-2 max-w-[200px] rounded"
+                  />
+                )}
                 {msg.content}
               </div>
             </div>
@@ -310,23 +281,53 @@ useEffect(() => {
 
         {/* Input */}
         {selected && (
-          <div className="p-4 border-t bg-white flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Nhập tin nhắn..."
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleSendMessage();
-              }}
-            />
-            <button
-              onClick={handleSendMessage}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-            >
-              Gửi
-            </button>
+          <div className="p-4 border-t bg-white flex flex-col gap-2">
+            {image && (
+              <div className="flex items-center gap-2">
+                <img
+                  src={URL.createObjectURL(image)}
+                  alt="Preview"
+                  className="w-20 h-20 object-cover rounded"
+                />
+                <button
+                  onClick={() => setImage(null)}
+                  className="text-sm text-red-500 underline"
+                >
+                  Xoá ảnh
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                placeholder="Nhập tin nhắn..."
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendMessage();
+                }}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setImage(e.target.files[0])}
+                className="hidden"
+                id="imageInput"
+              />
+              <label
+                htmlFor="imageInput"
+                className="bg-gray-200 text-gray-700 px-3 py-2 rounded-full text-sm cursor-pointer hover:bg-gray-300"
+              >
+                📎
+              </label>
+              <button
+                onClick={handleSendMessage}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium"
+              >
+                Gửi
+              </button>
+            </div>
           </div>
         )}
       </div>

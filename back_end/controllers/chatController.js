@@ -1,6 +1,7 @@
 import messageModel from '../models/messageModel.js';
 import doctorModel from '../models/doctorModel.js';
 import userModel from '../models/userModel.js';
+import { v2 as cloudinary } from 'cloudinary';
 
 export const getConversation = async (req, res) => {
     const { id: myId, role: myRole } = req.user;
@@ -43,18 +44,31 @@ export const sendMessage = async (req, res) => {
   const { id: senderId, role: senderRole } = req.user;
   const { receiverId, receiverRole, content } = req.body;
 
-  if (!receiverId || !receiverRole || !content?.trim()) {
-    return res.json({ success: false, message: 'Thiếu thông tin người nhận hoặc nội dung' });
-  }
+  let imageUrl = null;
 
   try {
+    const imageFile = req.file;
+    if (imageFile) {
+      const imageUpload = await cloudinary.uploader.upload(imageFile.path, {
+        resource_type: "image",
+      });
+      imageUrl = imageUpload.secure_url;
+    }
+
+    if (!receiverId || !receiverRole || (!content?.trim() && !imageUrl)) {
+      return res.json({
+        success: false,
+        message: 'Thiếu nội dung hoặc ảnh để gửi',
+      });
+    }
+
     const newMessage = await messageModel.create({
       sender: { id: senderId, role: senderRole },
       receiver: { id: receiverId, role: receiverRole },
-      content: content.trim(),
+      content: content?.trim() || "",
+      image: imageUrl,
     });
 
-    // ✅ Emit từ backend qua socket
     const io = req.app.get("io");
     const receiverRoom = `${receiverRole}-${receiverId}`;
     const senderRoom = `${senderRole}-${senderId}`;
