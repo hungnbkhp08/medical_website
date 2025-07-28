@@ -60,29 +60,30 @@ export const assets = {
 
 export const specialityData = [
     {
-        speciality: 'General physician',
+        speciality: 'Bác sĩ đa khoa',
         image: General_physician
     },
     {
-        speciality: 'Gynecologist',
+        speciality: 'Bác sĩ phụ khoa',
         image: Gynecologist
     },
     {
-        speciality: 'Dermatologist',
+        speciality: 'Bác sĩ da liễu',
         image: Dermatologist
     },
     {
-        speciality: 'Pediatricians',
+        speciality: 'Bác sĩ nhi khoa',
         image: Pediatricians
     },
     {
-        speciality: 'Neurologist',
+        speciality: 'Bác sĩ thần kinh',
         image: Neurologist
     },
     {
-        speciality: 'Gastroenterologist',
+        speciality: 'Bác sĩ tiêu hóa',
         image: Gastroenterologist
-    },
+    }
+    
 ]
 
 export const doctors = [

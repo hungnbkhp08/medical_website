@@ -122,13 +122,13 @@ const Appointment = () => {
             <p className='text-sm text-gray-600 max-w-[700px] mt-1'>{docInfo.about}</p>
           </div>
           <p className='text-gray-500 font-medium mt-4'>
-            Appointment fee:<span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
+           Đơn giá:<span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
           </p>
         </div>
       </div>
       {/* Booking Slot */}
       <div className='sm:ml-72 sm:pl-4 mt-4 text-gray-700 '>
-        <p>Booking slots</p>
+        <p>Lịch đặt chỗ</p>
         <div className='flex gap-3 items-center w-full overflow-x-scroll mt-4'>
           {
             docSlots.length && docSlots.map((item, index) => (
@@ -146,7 +146,7 @@ const Appointment = () => {
             </p>
           ))}
         </div>
-        <button onClick={bookAppointment} className='bg-[#5f6FFF] text-white text-sm font-light px-14 py-3 rounded-full my-6 cursor-pointer'> Book an appointment</button>
+        <button onClick={bookAppointment} className='bg-[#5f6FFF] text-white text-sm font-light px-14 py-3 rounded-full my-6 cursor-pointer'> Đặt lịch</button>
       </div>
       {/* Related Doctors */}
       <RelatedDoctors docId={docId} speciality={docInfo.speciality} />
