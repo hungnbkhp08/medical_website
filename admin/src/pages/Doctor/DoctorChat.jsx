@@ -41,9 +41,9 @@ const DoctorChat = () => {
       setConversations((prev) =>
         prev.map((conv) =>
           conv.patient._id ===
-          (message.sender.role === "patient"
-            ? message.sender.id
-            : message.receiver.id)
+            (message.sender.role === "patient"
+              ? message.sender.id
+              : message.receiver.id)
             ? { ...conv, lastMessage: message }
             : conv
         )
@@ -163,68 +163,66 @@ const DoctorChat = () => {
         <div className="space-y-3">
           {search.trim() === ""
             ? conversations.map((conv) => (
-                <div
-                  key={conv.patient._id}
-                  onClick={() => setSelected(conv.patient)}
-                  className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${
-                    selected?._id === conv.patient._id ? "bg-gray-100" : ""
+              <div
+                key={conv.patient._id}
+                onClick={() => setSelected(conv.patient)}
+                className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${selected?._id === conv.patient._id ? "bg-gray-100" : ""
                   }`}
-                >
-                  <img
-                    src={conv.patient.image || "https://i.pravatar.cc/150?img=3"}
-                    alt={conv.patient.name}
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{conv.patient.name}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {conv.lastMessage?.content || "Chưa có tin nhắn"}
-                    </p>
-                  </div>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
-                    {conv.lastMessage?.timestamp
-                      ? new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
+              >
+                <img
+                  src={conv.patient.image || "https://i.pravatar.cc/150?img=3"}
+                  alt={conv.patient.name}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{conv.patient.name}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {conv.lastMessage?.content || "Chưa có tin nhắn"}
+                  </p>
+                </div>
+                <span className="text-xs text-gray-400 whitespace-nowrap">
+                  {conv.lastMessage?.timestamp
+                    ? new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                    : ""}
+                </span>
+              </div>
+            ))
+            : users
+              .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()))
+              .map((u) => {
+                const conv = conversations.find((c) => c.patient._id === u._id);
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => setSelected(u)}
+                    className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${selected?._id === u._id ? "bg-gray-100" : ""
+                      }`}
+                  >
+                    <img
+                      src={u.image || "https://i.pravatar.cc/150?img=3"}
+                      alt={u.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{u.name}</p>
+                      <p className="text-xs text-gray-500 truncate">
+                        {conv?.lastMessage?.content || "Chưa có tin nhắn"}
+                      </p>
+                    </div>
+                    {conv?.lastMessage?.timestamp && (
+                      <span className="text-xs text-gray-400 whitespace-nowrap">
+                        {new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
                           hour: "2-digit",
                           minute: "2-digit",
-                        })
-                      : ""}
-                  </span>
-                </div>
-              ))
-            : users
-                .filter((u) => u.name.toLowerCase().includes(search.toLowerCase()))
-                .map((u) => {
-                  const conv = conversations.find((c) => c.patient._id === u._id);
-                  return (
-                    <div
-                      key={u._id}
-                      onClick={() => setSelected(u)}
-                      className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${
-                        selected?._id === u._id ? "bg-gray-100" : ""
-                      }`}
-                    >
-                      <img
-                        src={u.image || "https://i.pravatar.cc/150?img=3"}
-                        alt={u.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{u.name}</p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {conv?.lastMessage?.content || "Chưa có tin nhắn"}
-                        </p>
-                      </div>
-                      {conv?.lastMessage?.timestamp && (
-                        <span className="text-xs text-gray-400 whitespace-nowrap">
-                          {new Date(conv.lastMessage.timestamp).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                        })}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
         </div>
       </div>
 
@@ -254,16 +252,14 @@ const DoctorChat = () => {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${
-                msg.sender.id === profileData?._id ? "justify-end" : "justify-start"
-              }`}
+              className={`flex flex-col ${msg.sender.id === profileData?._id ? "items-end" : "items-start"
+                }`}
             >
               <div
-                className={`px-4 py-2 rounded-2xl text-sm max-w-xs break-words ${
-                  msg.sender.id === profileData?._id
+                className={`px-4 py-2 rounded-2xl text-sm max-w-xs break-words ${msg.sender.id === profileData?._id
                     ? "bg-blue-500 text-white rounded-br-none"
                     : "bg-white text-gray-800 border rounded-bl-none"
-                }`}
+                  }`}
               >
                 {msg.image && (
                   <img
@@ -274,10 +270,20 @@ const DoctorChat = () => {
                 )}
                 {msg.content}
               </div>
+              <span className="text-[11px] text-gray-400 mt-1 mr-1">
+                {new Date(msg.timestamp).toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
+
 
         {/* Input */}
         {selected && (

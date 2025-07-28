@@ -40,7 +40,7 @@ const PatientChat = () => {
       setConversations((prev) =>
         prev.map((conv) =>
           conv.doctor._id ===
-          (message.sender.role === "doctor" ? message.sender.id : message.receiver.id)
+            (message.sender.role === "doctor" ? message.sender.id : message.receiver.id)
             ? { ...conv, lastMessage: message }
             : conv
         )
@@ -163,9 +163,8 @@ const PatientChat = () => {
               <div
                 key={doctor._id}
                 onClick={() => setSelectedDoctor(doctor)}
-                className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${
-                  selectedDoctor?._id === doctor._id ? "bg-gray-100" : ""
-                }`}
+                className={`flex items-center gap-3 cursor-pointer hover:bg-gray-100 p-2 rounded-md ${selectedDoctor?._id === doctor._id ? "bg-gray-100" : ""
+                  }`}
               >
                 <img
                   src={doctor.image || "https://i.pravatar.cc/150?img=3"}
@@ -216,16 +215,14 @@ const PatientChat = () => {
           {messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${
-                msg.sender.id === userData?._id ? "justify-end" : "justify-start"
-              }`}
+              className={`flex flex-col ${msg.sender.id === userData?._id ? "items-end" : "items-start"
+                }`}
             >
               <div
-                className={`px-4 py-2 rounded-2xl text-sm max-w-xs break-words ${
-                  msg.sender.id === userData?._id
-                    ? "bg-blue-500 text-white rounded-br-none"
-                    : "bg-white text-gray-800 border rounded-bl-none"
-                }`}
+                className={`px-4 py-2 rounded-2xl text-sm max-w-xs break-words ${msg.sender.id === userData?._id
+                  ? "bg-blue-500 text-white rounded-br-none"
+                  : "bg-white text-gray-800 border rounded-bl-none"
+                  }`}
               >
                 {msg.image && (
                   <img
@@ -236,8 +233,19 @@ const PatientChat = () => {
                 )}
                 {msg.content}
               </div>
+              <span className="text-[11px] text-gray-400 mt-1 mr-1">
+                {new Date(msg.timestamp).toLocaleString("vi-VN", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+
             </div>
           ))}
+
           <div ref={messagesEndRef} />
         </div>
 
