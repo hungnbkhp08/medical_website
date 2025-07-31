@@ -5,6 +5,6 @@ import upload from '../middlewares/multer.js';
 const chatRouter = express.Router();
 
 chatRouter.post('/conversation', anyAuth, getConversation);
-chatRouter.get('/get-list', anyAuth,getConversationsList); // Added for consistency
+chatRouter.post('/get-list', anyAuth,getConversationsList); // Added for consistency
 chatRouter.post('/',upload.single('image'),anyAuth,sendMessage)
 export default chatRouter;

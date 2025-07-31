@@ -99,7 +99,7 @@ const DoctorContextProvider= (props)=>{
         }
     const getUserData=async()=>{
         try{
-            const {data}= await axios.get(backendUrl+'/api/user/list')
+            const {data}= await axios.post(backendUrl+'/api/user/list')
             if(data.success){
                 setUsers(data.users)
             }

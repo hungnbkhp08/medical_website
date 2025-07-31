@@ -66,7 +66,7 @@ const DoctorChat = () => {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const { data } = await axios.get(`${backendUrl}/api/message/get-list`, {
+        const { data } = await axios.post(`${backendUrl}/api/message/get-list`,{}, {
           headers: { dToken },
         });
         if (data.success) {
