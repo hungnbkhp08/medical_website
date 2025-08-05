@@ -127,9 +127,26 @@ const bookAppointment = async (req, res) => {
         await doctorModel.findByIdAndUpdate(docId, { slots_booked })
         await sendMail(
             userData.email,
-            'Xác nhận đặt lịch khám',
-            `Xin chào ${userData.name},\n\nBạn đã đặt lịch khám với bác sĩ ${docData.name} vào ngày ${slotDate} lúc ${slotTime}.\n\nTrân trọng!`
-          );
+            'Đặt lịch hẹn thành công',
+            null,
+            `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2 style="color: #2d9cdb;">Đặt lịch hẹn thành công</h2>
+              <p>Xin chào <strong>${userData.name}</strong>,</p>
+              <p>Bạn đã đặt thành công cho lịch hẹn khám bệnh:</p>
+              <ul>
+                <li><strong>Ngày:</strong> ${appointmentData.slotDate}</li>
+                <li><strong>Giờ:</strong> ${appointmentData.slotTime}</li>
+              </ul>
+              <p style="margin-top: 20px;">Trân trọng,<br/> <em>HealthCare Booking</em></p>
+          
+              <div style="margin-top: 30px; text-align: center;">
+                <img src="https://res.cloudinary.com/dhqgnr8up/image/upload/v1754365138/blog-2020-04-07-how_to_say_thank_you_in_business-Apr-09-2024-05-22-03-0706-PM_f6ltre.webp" alt="HealthCare Logo" style="width: 100%; max-width: 600px; border-radius: 8px;" />
+              </div>
+            </div>
+            `
+        );
+
         res.json({ success: true, messange: "Appointment booked" })
 
     }
@@ -167,9 +184,25 @@ const updatePaidAppointment = async (req, res) => {
         const userData = await userModel.findById(userId).select('-password')
         await sendMail(
             userData.email,
-            'Thanh toán thành công',
-            `Xin chào ${userData.name},\n\nBạn đã thanh toán thành công cho lịch hẹn khám vào ngày ${appointmentData.slotDate} lúc ${appointmentData.slotTime}.\n\nTrân trọng!`
-          );
+            'Xác nhận thanh toán lịch hẹn',
+            null,
+            `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2 style="color: #2d9cdb;">Thanh toán thành công</h2>
+              <p>Xin chào <strong>${userData.name}</strong>,</p>
+              <p>Bạn đã thanh toán thành công cho lịch hẹn khám bệnh:</p>
+              <ul>
+                <li><strong>Ngày:</strong> ${appointmentData.slotDate}</li>
+                <li><strong>Giờ:</strong> ${appointmentData.slotTime}</li>
+              </ul>
+              <p style="margin-top: 20px;">Trân trọng,<br/> <em>HealthCare Booking</em></p>
+          
+              <div style="margin-top: 40px; text-align: center;">
+                <img src="https://res.cloudinary.com/dhqgnr8up/image/upload/v1754365138/blog-2020-04-07-how_to_say_thank_you_in_business-Apr-09-2024-05-22-03-0706-PM_f6ltre.webp" alt="HealthCare Logo" style="width: 100%; max-width: 600px; border-radius: 8px;" />
+              </div>
+            </div>
+            `
+        );
         return res.json({ success: true, message: 'Appointment payment successfully' });
     }
     catch (error) {
@@ -209,9 +242,26 @@ const cancelAppointment = async (req, res) => {
         const userData = await userModel.findById(userId).select('-password');
         await sendMail(
             userData.email,
-            'Hủy lịch khám thành công',
-            `Xin chào ${userData.name},\n\nLịch khám của bạn vào ngày ${slotDate} lúc ${slotTime} đã được hủy thành công.\n\nTrân trọng!`
-          );
+            'Xác nhận hủy lịch hẹn',
+            null,
+            `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2 style="color: #e74c3c;">Lịch hẹn của bạn đã được hủy</h2>
+              <p>Xin chào <strong>${userData.name}</strong>,</p>
+              <p>Chúng tôi xác nhận rằng bạn đã <strong>hủy lịch hẹn khám bệnh</strong> trước đó với thông tin như sau:</p>
+              <ul>
+                <li><strong>Ngày:</strong> ${appointmentData.slotDate}</li>
+                <li><strong>Giờ:</strong> ${appointmentData.slotTime}</li>
+              </ul>
+              <p>Nếu đây là sự nhầm lẫn hoặc bạn cần đặt lại lịch hẹn, vui lòng truy cập website hoặc liên hệ chúng tôi để được hỗ trợ.</p>
+              <p style="margin-top: 20px;">Trân trọng,<br/><em>HealthCare Booking</em></p>
+          
+              <div style="margin-top: 40px; text-align: center;">
+                <img src="https://res.cloudinary.com/dhqgnr8up/image/upload/v1754365138/blog-2020-04-07-how_to_say_thank_you_in_business-Apr-09-2024-05-22-03-0706-PM_f6ltre.webp" alt="HealthCare Logo" style="width: 100%; max-width: 600px; border-radius: 8px;" />
+              </div>
+            </div>
+            `
+          );          
         return res.json({ success: true, message: 'Appointment cancelled successfully' });
     }
     catch (error) {
@@ -229,4 +279,4 @@ const getListUser = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment,getListUser };
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment, getListUser };

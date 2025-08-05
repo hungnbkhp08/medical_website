@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
-dotenv.config();
-
-export const sendMail = async (to, subject, text) => {
+export const sendMail = async (to, subject, text, html) => {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -15,7 +12,8 @@ export const sendMail = async (to, subject, text) => {
     from: `"HealthCare Booking" <${process.env.MAIL_USER}>`,
     to,
     subject,
-    text
+    text,  
+    html 
   };
 
   return transporter.sendMail(mailOptions);
