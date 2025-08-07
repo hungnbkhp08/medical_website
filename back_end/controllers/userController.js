@@ -96,6 +96,17 @@ const bookAppointment = async (req, res) => {
         if (!docData.available) {
             res.json({ success: false, message: 'Doctor not available' });
         }
+        // check trùng lịch 
+        const checkAppointment = await appointmentModel.findOne({
+            userId,
+            slotDate,
+            slotTime,
+            cancelled: { $ne: 'true' }
+        });
+        if (checkAppointment) {
+            res.json({ success: false, message: 'You already booked an appointment at this time' });
+            return;
+        }        
         let slots_booked = docData.slots_booked
         //checking for slot availablity
         if (slots_booked[slotDate]) {
