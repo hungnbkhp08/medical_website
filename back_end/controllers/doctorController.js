@@ -169,5 +169,46 @@ const updateDoctorProfile = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
+const getDoctorAvailability = async (req, res) => {
+    try {
+        let { slotDate, slotTime } = req.body;
 
-export { changeAvailablity, getListDoctor, loginDoctor, getDoctorAppointments, markAppointmentCompleted, cancelAppointment, doctorDashboard, getDoctorProfile, updateDoctorProfile }
+        // Nếu slotDate là ISO string: "2025-08-07"
+        // thì convert thành "7_8_2025"
+        const dateObj = new Date(slotDate);
+        const day = dateObj.getDate();
+        const month = dateObj.getMonth() + 1; // JS month starts from 0
+        const year = dateObj.getFullYear();
+
+        const convertedDate = `${day}_${month}_${year}`;
+        slotDate = convertedDate;
+
+        // Tìm các lịch đã đặt (chưa bị hủy)
+        const bookedAppointments = await appointmentModel.find({
+            slotDate,
+            slotTime,
+            cancelled: { $ne: true }
+        });
+
+        // Lấy ID bác sĩ đã bị đặt
+        const bookedDoctorIds = bookedAppointments.map(app => app.docId.toString());
+
+        // Lọc ra bác sĩ chưa bị đặt
+        const availableDoctors = await doctorModel.find({
+            _id: { $nin: bookedDoctorIds }
+        });
+        console.log(availableDoctors.length)
+
+        res.json({
+            success: true,
+            availableDoctors
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+
+export { changeAvailablity, getListDoctor, loginDoctor, getDoctorAppointments, markAppointmentCompleted, 
+    cancelAppointment, doctorDashboard, getDoctorProfile, updateDoctorProfile, getDoctorAvailability }

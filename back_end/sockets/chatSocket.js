@@ -6,7 +6,7 @@ export default function chatSocket(io) {
     const token = socket.handshake.auth?.token;
     const dtoken = socket.handshake.auth?.dtoken;
     if (!token && !dtoken) {
-      return next(new Error('❌ No token or dtoken provided'));
+      return next(new Error('No token or dtoken provided'));
     }
 
     try {
@@ -28,7 +28,7 @@ export default function chatSocket(io) {
 
       next();
     } catch (err) {
-      return next(new Error('❌ Invalid token'));
+      return next(new Error('Invalid token'));
     }
   });
 
@@ -36,7 +36,7 @@ export default function chatSocket(io) {
     const { id, role } = socket.user;
     const room = `${role}-${id}`;
     socket.join(room);
-    console.log(`✅ ${role} ${id} connected and joined room ${room}`);
+    console.log(`${role} ${id} connected and joined room ${room}`);
 
     socket.on('send_message', async ({ receiver, content, image }) => {
       try {
@@ -55,13 +55,13 @@ export default function chatSocket(io) {
         const senderRoom = `${role}-${id}`;
         io.to(senderRoom).emit('message_sent', message);
       } catch (err) {
-        console.error('💥 Error sending message:', err);
+        console.error(' Error sending message:', err);
         socket.emit('error_message', 'Gửi tin nhắn thất bại');
       }
     });    
 
     socket.on('disconnect', () => {
-      console.log(`❌ ${role} ${id} disconnected`);
+      console.log(`${role} ${id} disconnected`);
     });
   });
 }
