@@ -6,6 +6,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import { sendMail } from '../utils/sendMail.js';
+import { OAuth2Client } from "google-auth-library";
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -290,4 +291,40 @@ const getListUser = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-export { registerUser, loginUser, getProfile, updateProfile, bookAppointment, listAppointment, cancelAppointment, updatePaidAppointment, getListUser };
+const googleLoginUser = async (req, res) => {
+    try {
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const { credential } = req.body;
+  
+      // verify token từ google
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+  
+      const payload = ticket.getPayload();
+      const { email, name, sub } = payload; // sub = unique google id
+  
+      // tìm user theo email
+      let user = await userModel.findOne({ email });
+  
+      if (!user) {
+        // nếu chưa có thì tạo mới
+        user = await userModel.create({
+          name,
+          email,
+          // lưu sub làm password giả (không dùng thật sự cho login thường)
+          password: sub,
+        });
+      }
+  
+      // tạo JWT token của hệ thống bạn
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+      res.json({ success: true, token });
+    } catch (error) {
+      console.error(error);
+      res.json({ success: false, message: "Google login failed" });
+    }
+  };    
+export { registerUser, loginUser, getProfile, updateProfile, bookAppointment
+    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser };

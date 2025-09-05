@@ -68,7 +68,7 @@ const createPayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('🔴 Payment error:', error.response?.data || error.message);
+    console.error(' Payment error:', error.response?.data || error.message);
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -86,7 +86,7 @@ const handleIpn = async (req, res) => {
       extraData
     } = req.body;
 
-    console.log("📥 MoMo IPN Received:", req.body);
+    console.log(" MoMo IPN Received:", req.body);
 
     if (resultCode === 0) {
       // Thanh toán thành công
@@ -100,15 +100,15 @@ const handleIpn = async (req, res) => {
         payment: true
       });
 
-      console.log(`✅ Appointment ${appointmentId} marked as completed.`);
+      console.log(` Appointment ${appointmentId} marked as completed.`);
     } else {
-      console.log(`❌ Payment failed for OrderID: ${orderId}`);
+      console.log(` Payment failed for OrderID: ${orderId}`);
     }
 
     return res.status(200).json({ success: true, message: 'IPN received' });
 
   } catch (error) {
-    console.error('🔴 IPN error:', error.message);
+    console.error(' IPN error:', error.message);
     return res.status(500).json({ success: false, message: error.message });
   }
 };

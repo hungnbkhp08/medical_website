@@ -78,7 +78,7 @@ export const sendMessage = async (req, res) => {
 
     res.json({ success: true, message: newMessage });
   } catch (error) {
-    console.error('❌ Lỗi gửi tin nhắn:', error);
+    console.error(' Lỗi gửi tin nhắn:', error);
     res.json({ success: false, message: 'Gửi tin nhắn thất bại' });
   }
 };
@@ -137,7 +137,7 @@ export const getConversationsList = async (req, res) => {
     res.json({ success: true, conversations });
 
   } catch (err) {
-    console.error("❌ Lỗi lấy danh sách cuộc hội thoại:", err);
+    console.error(" Lỗi lấy danh sách cuộc hội thoại:", err);
     res.status(500).json({ success: false, message: "Lỗi máy chủ" });
   }
 };

@@ -15,30 +15,36 @@ import PaymentSuccess from './pages/PaymentSuccess';
 import Chatbot from './components/Chatbot';
 import PatientChat from './pages/PatientChat';
 
+// import provider của Google
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 const App = () => {
   const location = useLocation();
   const hideFooter = location.pathname === '/chat';
 
   return (
-    <div className='mx-4 sm:mx-[10%]'>
-      <ToastContainer />
-      <Navbar />
-      <Routes>
-        <Route path='/' element={<Home />} />
-        <Route path='/doctors' element={<Doctors />} />
-        <Route path='/doctors/:speciality' element={<Doctors />} />
-        <Route path='/login' element={<Login />} />
-        <Route path='/about' element={<About />} />
-        <Route path='/contact' element={<Contact />} />
-        <Route path='/my-profile' element={<MyProfile />} />
-        <Route path='/my-appointments' element={<MyAppointments />} />
-        <Route path='/appointment/:docId' element={<Appointment />} />
-        <Route path='/payment-success' element={<PaymentSuccess />} />
-        <Route path='/chat' element={<PatientChat />} />
-      </Routes>
-      {!hideFooter && <Footer />}
-      <Chatbot />
-    </div>
+    // Bọc toàn bộ App bằng GoogleOAuthProvider
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <div className='mx-4 sm:mx-[10%]'>
+        <ToastContainer />
+        <Navbar />
+        <Routes>
+          <Route path='/' element={<Home />} />
+          <Route path='/doctors' element={<Doctors />} />
+          <Route path='/doctors/:speciality' element={<Doctors />} />
+          <Route path='/login' element={<Login />} />
+          <Route path='/about' element={<About />} />
+          <Route path='/contact' element={<Contact />} />
+          <Route path='/my-profile' element={<MyProfile />} />
+          <Route path='/my-appointments' element={<MyAppointments />} />
+          <Route path='/appointment/:docId' element={<Appointment />} />
+          <Route path='/payment-success' element={<PaymentSuccess />} />
+          <Route path='/chat' element={<PatientChat />} />
+        </Routes>
+        {!hideFooter && <Footer />}
+        <Chatbot />
+      </div>
+    </GoogleOAuthProvider>
   );
 }
 
