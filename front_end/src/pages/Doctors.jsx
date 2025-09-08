@@ -1,6 +1,9 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { AppContext } from '../context/AppContext';
+import StarIcon from '@mui/icons-material/Star';
+import StarHalfIcon from '@mui/icons-material/StarHalf';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 
 const Doctors = () => {
   const { speciality } = useParams();
@@ -8,6 +11,24 @@ const Doctors = () => {
   const [filterDoc, setFilterDoc] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
   const { doctors } = useContext(AppContext);
+  const renderStars = (rating) => {
+    const stars = []
+    const fullStars = Math.floor(rating)
+    const hasHalf = rating % 1 >= 0.5
+    const emptyStars = 5 - fullStars - (hasHalf ? 1 : 0)
+
+    for (let i = 0; i < fullStars; i++) {
+      stars.push(<StarIcon key={`full-${i}`} className="text-yellow-400" />)
+    }
+    if (hasHalf) {
+      stars.push(<StarHalfIcon key="half" className="text-yellow-400" />)
+    }
+    for (let i = 0; i < emptyStars; i++) {
+      stars.push(<StarBorderIcon key={`empty-${i}`} className="text-yellow-400" />)
+    }
+
+    return stars
+  }
 
   const applyFilter = () => {
     if (speciality) {
@@ -65,6 +86,15 @@ const Doctors = () => {
                   </div>
                   <p className='text-gray-900 text-lg font-medium'>{item.name}</p>
                   <p className='text-gray-600 text-sm'>{item.speciality}</p>
+                  {/* Rating */}
+                  {item.averageRating !== undefined && (
+                    <div className="flex items-center gap-1 mt-2">
+                      {renderStars(item.averageRating)}
+                      <span className="text-sm text-gray-600">
+                        {item.averageRating.toFixed(1)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))

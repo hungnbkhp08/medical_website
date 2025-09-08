@@ -13,7 +13,7 @@ const doctorSchema = new mongoose.Schema({
     address: { type: Object, required: true },
     date: { type: Number, required: true },
     slots_booked: { type: Object, default: {} },
-
+    averageRating: { type: Number, default: 0.0 }
 }, { minimize: false });
 const doctorModel = mongoose.model.doctor || mongoose.model("doctors", doctorSchema);
 export default doctorModel;

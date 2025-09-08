@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
 import { sendMail } from '../utils/sendMail.js';
 import userModel from "../models/userModel.js"
+import reviewModel from "../models/reviewModel.js";
 const changeAvailablity = async (req, res) => {
     try {
         const { docId } = req.body
@@ -18,7 +19,7 @@ const changeAvailablity = async (req, res) => {
 }
 const getListDoctor = async (req, res) => {
     try {
-        const doctors = await doctorModel.find({}).select(['-password', '-email'])
+        const doctors = await doctorModel.find({}).select(['-password', '-email']).sort({ averageRating: -1 })
         res.json({ success: true, doctors })
     }
     catch (error) {
