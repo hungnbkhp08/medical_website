@@ -5,6 +5,7 @@ import { assets } from '../assets/assets'
 import RelatedDoctors from '../components/RelatedDoctors'
 import { toast } from 'react-toastify'
 import axios from 'axios'
+import StarIcon from '@mui/icons-material/Star';
 const Appointment = () => {
   const { docId } = useParams()
   const { doctors, currencySymbol, backendUrl, token, getDoctorData } = useContext(AppContext)
@@ -19,6 +20,36 @@ const Appointment = () => {
     setDocInfo(docInfo)
     console.log(docInfo)
   }
+  const [reviews, setReviews] = useState([]);
+  const [rating, setRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const submitReview = async () => {
+    if (!token) {
+      toast.warn("Vui lòng đăng nhập để đánh giá");
+      return navigate("/login");
+    }
+    if (rating === 0) {
+      toast.warn("Vui lòng chọn số sao");
+      return;
+    }
+    try {
+      const { data } = await axios.post(
+        backendUrl + "/api/review/review-doctor",
+        { docId, rating, comment: reviewText },
+        { headers: { token } }
+      );
+      if (data.success) {
+        toast.success("Đánh giá thành công!");
+        setRating(0);
+        setReviewText("");
+        fetchReviews();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   const getAvailableSlots = async () => {
     setDocSlots([])
     //getting current date
@@ -89,6 +120,22 @@ const Appointment = () => {
       toast.error(error.message);
     }
   }
+  const fetchReviews = async () => {
+    try {
+      const { data } = await axios.post(
+        backendUrl + "/api/review/get-list", { docId }
+      );
+      if (data.success) {
+        setReviews(data.reviews);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    if (docId) fetchReviews();
+  }, [docId]);
   useEffect(() => {
     fetchDocInfo()
   }, [doctors, docId])
@@ -122,7 +169,7 @@ const Appointment = () => {
             <p className='text-sm text-gray-600 max-w-[700px] mt-1'>{docInfo.about}</p>
           </div>
           <p className='text-gray-500 font-medium mt-4'>
-           Đơn giá:<span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
+            Đơn giá:<span className='text-gray-600'>{currencySymbol}{docInfo.fees}</span>
           </p>
         </div>
       </div>
@@ -148,6 +195,80 @@ const Appointment = () => {
         </div>
         <button onClick={bookAppointment} className='bg-[#5f6FFF] text-white text-sm font-light px-14 py-3 rounded-full my-6 cursor-pointer'> Đặt lịch</button>
       </div>
+      {/* Review Section */}
+      <div className="sm:ml-72 sm:pl-4 mt-6 bg-white p-6 rounded-lg border border-gray-300">
+        <h2 className="text-lg font-medium text-gray-900 mb-3">Đánh giá bác sĩ</h2>
+
+        {/*  Danh sách review */}
+        <div className="space-y-4 mb-6">
+          {reviews.length > 0 ? (
+            reviews.map((rev, idx) => (
+              <div key={idx} className="border-b pb-3">
+                <div className="flex items-center gap-2">
+                  {/* Avatar user */}
+                  <img
+                    src={rev.user.image || "/default-avatar.png"}
+                    alt=''
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                     <span className="text-sm text-gray-700 font-medium">
+                        {rev.user.name}
+                      </span>
+                  <div className="flex flex-col">
+                    <div className="flex items-center gap-2">
+                      {/* Hiển thị số sao */}
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <StarIcon
+                          key={star}
+                          className={`w-5 h-5 ${star <= rev.rating ? "text-yellow-400" : "text-gray-300"
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nội dung comment */}
+                <p className="text-sm text-gray-700 mt-2">{rev.comment}</p>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">Chưa có đánh giá nào</p>
+          )}
+        </div>
+
+        {/* Form gửi đánh giá */}
+        <div>
+          {/* Chọn số sao */}
+          <div className="flex gap-1 mb-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <StarIcon
+                key={star}
+                onClick={() => setRating(star)}
+                className={`w-7 h-7 cursor-pointer ${star <= rating ? "text-yellow-400" : "text-gray-300"
+                  }`}
+              />
+            ))}
+          </div>
+          {/* Nhập nhận xét */}
+          <textarea
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+            placeholder="Nhập đánh giá của bạn..."
+            className="w-full border border-gray-300 rounded-lg p-2 text-sm mb-3"
+            rows={3}
+          />
+
+          {/* Nút gửi */}
+          <button
+            onClick={submitReview}
+            className="bg-[#5f6FFF] text-white px-6 py-2 rounded-full text-sm"
+          >
+            Gửi đánh giá
+          </button>
+        </div>
+      </div>
+
       {/* Related Doctors */}
       <RelatedDoctors docId={docId} speciality={docInfo.speciality} />
     </div>

@@ -13,7 +13,7 @@ import userRouter from './routes/userRoute.js';
 import paymentRoute from './routes/paymentRoute.js';
 import chatSocket from './sockets/chatSocket.js'; 
 import chatRouter from './routes/chatRoute.js';
-
+import reviewRoute from './routes/reviewRoute.js';
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -28,6 +28,7 @@ app.use('/api/doctor', doctorRouter);
 app.use('/api/user', userRouter);
 app.use('/api/payment', paymentRoute);
 app.use('/api/message', chatRouter); 
+app.use('/api/review', reviewRoute);
 
 app.get('/', (req, res) => {
   res.send('API WORKING');
