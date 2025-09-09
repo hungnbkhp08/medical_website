@@ -1,7 +1,7 @@
 import userModel from "../models/userModel.js"
 import reviewModel from "../models/reviewModel.js";
 import doctorModel from "../models/doctorModel.js";
-import apointmentModel from "../models/apointmentModel.js";
+import appointmentModel from "../models/appointmentModel.js";
 const submitReview = async (req, res) => {
     try {
         const { docId, userId, rating, comment } = req.body;
@@ -9,7 +9,7 @@ const submitReview = async (req, res) => {
         if (existingReview) {
             return res.json({ success: false, message: 'Bạn đã đánh giá bác sĩ này rồi' });
         }
-        const appointment = await apointmentModel.findOne({ docId, userId });
+        const appointment = await appointmentModel.findOne({ docId, userId });
         if(!appointment.isCompleted){
             return res.json({ success: false, message: 'Bạn chưa từng khám bác sĩ này, không thể đánh giá' });
         }
