@@ -209,7 +209,7 @@ const Appointment = () => {
                   <img
                     src={rev.user.image || "/default-avatar.png"}
                     alt=''
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover"
                   />
                      <span className="text-sm text-gray-700 font-medium">
                         {rev.user.name}

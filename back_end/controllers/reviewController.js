@@ -19,6 +19,27 @@ const submitReview = async (req, res) => {
         const reviews = await reviewModel.find({ docId });
         const averageRating = reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length;
         await doctorModel.findByIdAndUpdate(docId, { averageRating });
+        const userData = await userModel.findById(userId).select('-password');
+        await sendMail(
+          userData.email,
+          'Cảm ơn bạn đã đánh giá',
+          null,
+          `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #2d9cdb;">Cảm ơn bạn!</h2>
+            <p>Xin chào <strong>${userData.name}</strong>,</p>
+            <p>Chúng tôi rất cảm ơn bạn đã dành thời gian đánh giá trải nghiệm khám bệnh gần đây:</p>
+            <p>Những đánh giá của bạn giúp chúng tôi nâng cao chất lượng dịch vụ và mang đến trải nghiệm tốt hơn cho tất cả bệnh nhân.</p>
+            <p style="margin-top: 20px;">Trân trọng,<br/> <em>HealthCare Booking</em></p>
+      
+            <div style="margin-top: 30px; text-align: center;">
+              <img src="https://res.cloudinary.com/dhqgnr8up/image/upload/v1754365138/blog-2020-04-07-how_to_say_thank_you_in_business-Apr-09-2024-05-22-03-0706-PM_f6ltre.webp" 
+                   alt="HealthCare Logo" 
+                   style="width: 100%; max-width: 600px; border-radius: 8px;" />
+            </div>
+          </div>
+          `
+      );      
         res.json({ success: true, message: 'Đánh giá thành công', review: newReview });
     }
     catch (error) {
