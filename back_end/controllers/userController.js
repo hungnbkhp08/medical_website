@@ -1,6 +1,6 @@
 import userModel from "../models/userModel.js";
 import validator from 'validator'
-import bycrypt from 'bcrypt';
+import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import doctorModel from "../models/doctorModel.js";
@@ -19,8 +19,8 @@ const registerUser = async (req, res) => {
         if (password.length < 8) {
             return res.json({ success: false, message: "Please enter a strong password" });
         }
-        const salt = await bycrypt.genSalt(10);
-        const hashedPassword = await bycrypt.hash(password, salt);
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
         const userData = {
             name,
             email,
@@ -43,7 +43,7 @@ const loginUser = async (req, res) => {
         if (!user) {
             return res.json({ success: false, message: "User does not exist" });
         }
-        const isMatch = await bycrypt.compare(password, user.password)
+        const isMatch = await bcrypt.compare(password, user.password)
         if (isMatch) {
             const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
             res.json({ success: true, token })
