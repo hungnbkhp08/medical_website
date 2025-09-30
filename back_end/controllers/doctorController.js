@@ -2,9 +2,10 @@ import doctorModel from "../models/doctorModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
-import { sendMail } from '../utils/sendMail.js';
+import { sendMail,sendMailWithReport } from '../utils/sendMail.js';
 import userModel from "../models/userModel.js"
 import reviewModel from "../models/reviewModel.js";
+import resultModel from "../models/resultModel.js";
 const changeAvailablity = async (req, res) => {
     try {
         const { docId } = req.body
@@ -65,18 +66,25 @@ const getDoctorAppointments = async (req, res) => {
 //API to mark appointment as completed
 const markAppointmentCompleted = async (req, res) => {
     try {
-        const { docId, appointmentId } = req.body;
+        const { docId, appointmentId,diagnosis,prescription } = req.body;
         const appointment = await appointmentModel.findById(appointmentId);
         if (appointment && appointment.docId === docId) {
             appointment.isCompleted = true;
             await appointment.save();
+            const result ={
+                appointmentId,
+                diagnosis,
+                prescription
+            }
+            const newResult = new resultModel(result);
+            await newResult.save()   
             // Send email to user about appointment completion
             const userData = await userModel.findById(appointment.userId).select('-password');
-            await sendMail(
+            await sendMailWithReport(
                 userData.email,
-                'Lịch hẹn đã hoàn tất',
-                `Xin chào ${userData.name},\n\nLịch hẹn của bạn với bác sĩ ${appointment.docData.name} vào ngày ${appointment.slotDate} lúc ${appointment.slotTime} đã được đánh dấu là hoàn tất.\n\nCảm ơn bạn đã sử dụng dịch vụ của chúng tôi. Chúc bạn luôn mạnh khỏe và bình an!\n\nTrân trọng,\nĐội ngũ hỗ trợ HealthCare Booking`
-            );            
+                diagnosis,
+                prescription
+              );    
             res.json({ success: true, message: "Appointment completed" });
         }
         else {
