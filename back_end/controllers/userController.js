@@ -7,6 +7,7 @@ import doctorModel from "../models/doctorModel.js";
 import appointmentModel from "../models/appointmentModel.js";
 import { sendMail } from '../utils/sendMail.js';
 import { OAuth2Client } from "google-auth-library";
+import {generateMedicalReport} from '../utils/createPdf.js';
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -167,7 +168,40 @@ const bookAppointment = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-
+const downloadResult = async (req, res) => {
+    try {
+        const { appointmentId } = req.body;
+    
+        // 1. Tìm lịch hẹn
+        const appointment = await appointmentModel.findById(appointmentId);
+        if (!appointment) {
+            res.json({ success: false, message: "Không tìm thấy lịch hẹn"  })
+            return;
+        }
+    
+        // 2. Kiểm tra đã hoàn thành chưa
+        if (!appointment.isCompleted) {
+          return res.json({ success: false, message: "Lịch hẹn chưa hoàn thành, chưa có kết quả" });
+        }
+    
+        // 3. Sinh PDF từ diagnosis & prescription
+        const pdfBuffer = await generateMedicalReport(
+          appointment.diagnosis || "Chưa có chẩn đoán",
+          appointment.prescription || []
+        );
+    
+        // 4. Trả về file PDF
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename=ket-qua-kham-${appointmentId}.pdf`
+        );
+        return res.send(pdfBuffer);
+      } catch (error) {
+        console.error("Lỗi download-result:", error);
+        return res.json({ success: false, message: "Lỗi server khi tải kết quả" });
+      }
+    }
 // API to get user appointments for frontend my_appointments page
 const listAppointment = async (req, res) => {
     try {
@@ -327,4 +361,4 @@ const googleLoginUser = async (req, res) => {
     }
   };    
 export { registerUser, loginUser, getProfile, updateProfile, bookAppointment
-    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser };
+    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser,downloadResult };

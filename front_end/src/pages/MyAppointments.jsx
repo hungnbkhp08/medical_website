@@ -42,6 +42,28 @@ const MyAppointments = () => {
       toast.error(error.message)
     }
   }
+  const downloadResult = async (appointmentId) => {
+    try {
+      const { data } = await axios.post(backendUrl + '/api/user/download-result', { appointmentId }, { headers: { token }, responseType: 'blob' })
+      if (data) {
+        // Tạo URL tạm thời cho file PDF
+        const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }))
+        const link = document.createElement('a')
+        link
+          .setAttribute('href', url)
+        link.setAttribute('download', `ket-qua-kham-${appointmentId}.pdf`)
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        window.URL.revokeObjectURL(url)
+        toast.success("Đã tải kết quả")
+      } else {
+        toast.error("Không có kết quả để tải")
+      }
+    } catch (error) {
+      toast.error("Lỗi tải kết quả: " + error.message)
+    }
+  }
 
   const payAppointment = async (appointmentId, amount) => {
     try {
@@ -99,7 +121,8 @@ const MyAppointments = () => {
                     Đã thanh toán
                   </button>
                 ) : (
-                  !item.cancelled && !item.isCompleted && (
+                  !item.cancelled &&
+                  !item.isCompleted && (
                     <>
                       <button
                         onClick={() => payAppointment(item._id, item.docData.fees)}
@@ -120,12 +143,21 @@ const MyAppointments = () => {
                     Đã hủy lịch hẹn
                   </button>
                 )}
+
                 {item.isCompleted && (
-                  <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>
-                    Đã hoàn thành
-                  </button>
+                  <>
+                    <button className='sm:min-w-48 py-2 border border-green-500 rounded text-green-500'>
+                      Đã hoàn thành
+                    </button>
+                    <button
+                      onClick={() => downloadResult(item._id)} // hàm tải kết quả
+                      className='text-sm text-stone-500 sm:min-w-48 py-2 border hover:bg-green-600 hover:text-white transition-all duration-300 cursor-pointer'>
+                      Tải kết quả
+                    </button>
+                  </>
                 )}
               </div>
+
             </div>
           </div>
         ))}
