@@ -63,13 +63,13 @@ const Navbar = () => {
                         <img className='w-7' onClick={() => setShowMenu(false)} src={assets.cross_icon} alt="" />
                     </div>
                     <ul className='flex flex-col items-center gap-2 mt-5 px-5 text-lg font-medium'>
-                        <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded-full inline-block'>HOME</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/doctors'><p className='px-4 py-2 rounded-full inline-block'>ALL DOCTORS</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/about'><p className='px-4 py-2 rounded-full inline-block'>ABOUT</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/contact'><p className='px-4 py-2 rounded-full inline-block'>CONTACT</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded-full inline-block'>TRANG CHỦ</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/doctors'><p className='px-4 py-2 rounded-full inline-block'>BÁC SỸ</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/about'><p className='px-4 py-2 rounded-full inline-block'>VỀ CHÚNG TÔI</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/contact'><p className='px-4 py-2 rounded-full inline-block'>LIÊN HỆ</p></NavLink>
                         {
                             token &&
-                            <NavLink onClick={() => setShowMenu(false)} to='/chat'><p className='px-4 py-2 rounded-full inline-block'>CHAT</p></NavLink>
+                            <NavLink onClick={() => setShowMenu(false)} to='/chat'><p className='px-4 py-2 rounded-full inline-block'>TIN NHẮN</p></NavLink>
                         }
                     </ul>
                 </div>

@@ -11,7 +11,7 @@ const DoctorList = () => {
   
   return (
     <div className='m-5 max-h-[90vh] overflow-y-scroll'>
-      <h1 className='text-lg font-medium'>All Doctors</h1>
+      <h1 className='text-lg font-medium'>Bác sỹ</h1>
       <div className='w-full flex flex-wrap gap-4 pt-5 gap-y-6'>
         {
           doctors.map((item,index)=>(
@@ -22,7 +22,7 @@ const DoctorList = () => {
                 <p className='text-zinc-600 text-sm'>{item.speciality}</p>     
                 <div className='mt-2 flex items-center gap-1 text-sm'>
                 <input onChange={()=>changeAvailability(item._id)} type='checkbox' checked={item.available}/>
-                <p>Available</p>
+                <p>Đang hoạt động</p>
               </div>
               </div>
             </div>

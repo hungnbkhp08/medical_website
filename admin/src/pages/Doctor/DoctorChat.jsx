@@ -239,7 +239,7 @@ const DoctorChat = () => {
               />
               <div>
                 <p className="font-medium text-base">{selected.name}</p>
-                <p className="text-xs text-green-600">Đang hoạt động</p>
+                {/* <p className="text-xs text-green-600">Đang hoạt động</p> */}
               </div>
             </>
           ) : (

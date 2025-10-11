@@ -59,14 +59,14 @@ const DoctorProfile = () => {
 
         {/* Giới thiệu */}
         <div className='mb-4'>
-          <p className='font-medium'>About:</p>
+          <p className='font-medium'>Giới thiệu:</p>
           <p className='text-gray-600'>{profileData.about}</p>
         </div>
 
         {/* Phí khám */}
         <div className='mb-4'>
           <p className='font-medium'>
-            Appointment fee:
+            Phí khám bệnh:
             {
               isEdit ? (
                 <span className='ml-2 text-blue-600'>
@@ -90,7 +90,7 @@ const DoctorProfile = () => {
 
         {/* Địa chỉ */}
         <div className='mb-4'>
-          <p className='font-medium mb-1'>Address:</p>
+          <p className='font-medium mb-1'>Địa chỉ:</p>
           {
             isEdit ? (
               <div className='flex flex-col gap-2'>
@@ -149,7 +149,7 @@ const DoctorProfile = () => {
                     }))
                   }
                 />
-                <label htmlFor="available" className='text-sm text-gray-700'>Available</label>
+                <label htmlFor="available" className='text-sm text-gray-700'>Đang hoạt động</label>
               </>
             ) : (
               <>
@@ -160,7 +160,7 @@ const DoctorProfile = () => {
                   checked={profileData.available}
                   readOnly
                 />
-                <label htmlFor="available" className='text-sm text-gray-700'>Available</label>
+                <label htmlFor="available" className='text-sm text-gray-700'>Đang hoạt động</label>
               </>
             )
           }
@@ -173,12 +173,12 @@ const DoctorProfile = () => {
             ? <button
               onClick={updateProfile}
               className='px-4 py-2 border border-green-500 text-green-600 rounded hover:bg-green-50 transition cursor-pointer'>
-              Save
+              Lưu
             </button>
             : <button
               onClick={() => setIsEdit(true)}
               className='px-4 py-2 border border-blue-500 text-blue-500 rounded hover:bg-blue-50 transition cursor-pointer'>
-              Edit
+              Chỉnh sửa
             </button>
         }
 

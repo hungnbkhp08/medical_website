@@ -72,8 +72,8 @@ const Login = () => {
   return (
     <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>
       <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg'>
-        <p className='text-2xl font-semibold'>{state === 'Sign Up' ? "Create Account" : "Login"}</p>
-        <p>Please {state === 'Sign Up' ? "sign up" : "login"} to book appointment</p>
+        <p className='text-2xl font-semibold'>{state === 'Sign Up' ? "Tạo tài khoản" : "Đăng Nhập"}</p>
+        <p>Vui lòng {state === 'Sign Up' ? "đăng ký" : "đăng nhập"} để đặt lịch hẹn</p>
 
         {state === 'Sign Up' &&
           <div className='w-full'>
@@ -111,12 +111,12 @@ const Login = () => {
         </div>
 
         <button type='submit' className='bg-[#5f6FFF] text-white w-full py-2 rounded-md text-base cursor-pointer'>
-          {state === 'Sign Up' ? "Create Account" : "Login"}
+          {state === 'Sign Up' ? "Đăng ký" : "Đăng nhập"}
         </button>
 
         {state === 'Sign Up'
-          ? <p>Already have an account? <span onClick={() => setState('Login')} className='text-[#5f6FFF] underline cursor-pointer'>Login here</span></p>
-          : <p>Create a new account? <span onClick={() => setState('Sign Up')} className='text-[#5f6FFF] underline cursor-pointer'>Click here</span></p>
+          ? <p>Đã có tài khoản ? <span onClick={()=>setState('Login')} className='text-[#5f6FFF] underline cursor-pointer'>Đăng nhập</span></p>
+          :<p>Tạo tài khoản mới ? <span onClick={()=>setState('Sign Up')} className='text-[#5f6FFF] underline cursor-pointer'>Đăng ký</span></p>
         }
 
         {/* Nút Google Login */}

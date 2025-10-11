@@ -42,17 +42,17 @@ const DoctorAppointment = () => {
 
     return (
         <div className="w-full max-w-6xl m-5 relative">
-            <p className="mb-3 text-lg font-medium">All Appointments</p>
+            <p className="mb-3 text-lg font-medium">Tất cả lịch hẹn</p>
 
             <div className="bg-white border rounded text-sm max-h-[80vh] min-h-[60vh] overflow-y-scroll">
                 <div className="hidden sm:grid grid-cols-[0.5fr_2fr_1fr_1fr_3fr_1fr_1fr] grid-flow-col py-3 px-6 border-b">
                     <p>#</p>
-                    <p>Patient</p>
-                    <p>Payment</p>
-                    <p>Age</p>
-                    <p>Date & Time</p>
-                    <p>Fee</p>
-                    <p>Action</p>
+                    <p>Bệnh nhân</p>
+                    <p>Thanh toán</p>
+                    <p>Tuổi</p>
+                    <p>Ngày & Giờ</p>
+                    <p>Phí</p>
+                    <p>Hành động</p>
                 </div>
 
                 {appointments.slice().reverse().map((item, index) => (
@@ -66,19 +66,19 @@ const DoctorAppointment = () => {
                             <p>{item.userData.name}</p>
                         </div>
                         <p className="text-xs inline border px-2 rounded-full w-fit">
-                            {item.payment ? 'Online' : 'CASH'}
+                            {item.payment ? 'Trực tuyến' : 'Tiền mặt'}
                         </p>
                         <p className="max-sd:hidden">{caculateAge(item.userData.dob)}</p>
                         <p>{slotDateFormat(item.slotDate)}, {item.slotTime}</p>
                         <p>{currency}{item.amount}</p>
                         {item.cancelled ? (
-                            <p className="text-red-400 text-xs font-medium">Cancelled</p>
+                            <p className="text-red-400 text-xs font-medium">Đã hủy</p>
                         ) : item.isCompleted ? (
-                            <p className="text-green-500 text-xs font-medium">Completed</p>
+                            <p className="text-green-500 text-xs font-medium">Hoàn thành</p>
                         ) : (
                             <div className="flex items-center gap-2">
                                 {item.payment && (
-                                    <p className="text-blue-500 text-xs font-medium">Paid</p>
+                                    <p className="text-blue-500 text-xs font-medium">Đã thanh toán</p>
                                 )}
                                 <img
                                     onClick={() => cancelAppointment(item._id)}

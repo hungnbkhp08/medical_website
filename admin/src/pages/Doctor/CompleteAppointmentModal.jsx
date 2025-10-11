@@ -41,13 +41,13 @@ const CompleteAppointmentModal = ({
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm"
+              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm cursor-pointer"
             >
               Hủy
             </button>
             <button
               onClick={() => setStep(2)}
-              className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition text-sm"
+              className="px-4 py-2 rounded-lg bg-[#5f6FFF] text-white hover:bg-[#4e5bbf] transition text-sm cursor-pointer"
             >
               Tiếp tục
             </button>
@@ -122,7 +122,7 @@ const CompleteAppointmentModal = ({
                           onClick={() =>
                             setPrescription([...prescription, { name: "", unit: "", quantity: "" }])
                           }
-                          className="px-2 py-1 rounded bg-green-500 text-white hover:bg-green-600 text-xs"
+                          className="px-2 py-1 rounded bg-[#5f6FFF] text-white hover:bg-green-600 text-xs"
                         >
                           +
                         </button>
@@ -137,13 +137,13 @@ const CompleteAppointmentModal = ({
           <div className="flex justify-end gap-3 mt-5">
             <button
               onClick={() => setStep(1)}
-              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm"
+              className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition text-sm cursor-pointer"
             >
               Quay lại
             </button>
             <button
               onClick={onConfirm}
-              className="px-4 py-2 rounded-lg bg-green-500 text-white hover:bg-green-600 transition text-sm"
+              className="px-4 py-2 rounded-lg bg-[#5f6FFF] text-white hover:bg-[#4e5bbf] transition text-sm cursor-pointer"
             >
               Xác nhận
             </button>
