@@ -93,15 +93,6 @@ const DoctorReviewManagement = () => {
       minute: '2-digit'
     });
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-lg text-gray-500">Đang tải đánh giá của bạn...</div>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
       {/* Header */}
