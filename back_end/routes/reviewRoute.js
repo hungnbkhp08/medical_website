@@ -1,7 +1,11 @@
 import express from 'express';
-import { submitReview,getListReview  } from '../controllers/reviewController.js';
+import { submitReview,getListReview,getAllReviews,getDoctorReviews } from '../controllers/reviewController.js';
 import authUser from '../middlewares/authUser.js';
+import authAdmin from '../middlewares/authAdmin.js';
+import authDoctor from '../middlewares/authDoctor.js';
 const reviewRoute = express.Router();
 reviewRoute.post('/review-doctor',authUser, submitReview);
 reviewRoute.post('/get-list', getListReview);
+reviewRoute.post('/get-list-doctor', authDoctor, getDoctorReviews);
+reviewRoute.post('/get-all', authAdmin, getAllReviews);
 export default reviewRoute;

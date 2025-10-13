@@ -24,7 +24,7 @@ const DoctorList = () => {
                 <div className='p-4'>
                   <p className='text-neutral-800 text-lg font-medium'>{item.name}</p>
                   <p className='text-zinc-600 text-sm'>{item.speciality}</p>
-                  <p className='text-zinc-500 text-xs mt-1'>{item.experience} kinh nghiệm</p>
+                  <p className='text-zinc-500 text-xs mt-1'>{item.experience} năm kinh nghiệm</p>
                 </div>
               </div>
               <div className='px-4 pb-4'>

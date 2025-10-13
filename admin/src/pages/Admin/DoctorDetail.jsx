@@ -125,7 +125,7 @@ const DoctorDetail = () => {
             {doctor.degree} - {doctor.speciality}
           </p>
           <p className='py-0.5 px-2 border text-xs rounded-full text-gray-600'>
-            {doctor.experience}
+            {doctor.experience} năm
           </p>
         </div>
 
