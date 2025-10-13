@@ -146,4 +146,30 @@ const adminDashboard = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
-export { addDoctor,loginAdmin,allDoctor, appointmentsAdmin,cancelAppointment,adminDashboard};  
+const updateDoctorProfile = async (req, res) => {
+    try {
+        const { docId, address, available, fees } = req.body;
+        await doctorModel.findByIdAndUpdate(docId, {
+            address,
+            available,
+            fees
+        });
+        res.json({ success: true, message: 'Profile updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+};
+const deleteDoctor = async (req, res) => {
+    try {
+        const { docId } = req.body;
+        await doctorModel.findByIdAndDelete(docId);
+        res.json({ success: true, message: 'Doctor deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+}
+export { addDoctor,loginAdmin,allDoctor, appointmentsAdmin,cancelAppointment,adminDashboard,
+    updateDoctorProfile,deleteDoctor
+};  

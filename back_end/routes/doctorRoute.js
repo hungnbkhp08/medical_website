@@ -1,5 +1,6 @@
 import express from 'express';
-import { cancelAppointment, doctorDashboard, getDoctorAppointments, getDoctorAvailability, getDoctorProfile, getListDoctor, loginDoctor, markAppointmentCompleted, updateDoctorProfile } from '../controllers/doctorController.js';
+import { cancelAppointment, doctorDashboard, getDoctorAppointments, getDoctorAvailability, 
+    getDoctorProfile, getListDoctor, loginDoctor, markAppointmentCompleted, updateDoctorProfile} from '../controllers/doctorController.js';
 import authDoctor from '../middlewares/authDoctor.js';
 const doctorRouter=express.Router()
 doctorRouter.post('/list',getListDoctor)

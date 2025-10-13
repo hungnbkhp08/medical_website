@@ -11,6 +11,7 @@ import Dashboard from './pages/Admin/Dashboard';
 import AllApointments from './pages/Admin/AllApointments';
 import AddDoctor from './pages/Admin/AddDoctor';
 import DoctorList from './pages/Admin/DoctorList';
+import DoctorDetail from './pages/Admin/DoctorDetail';
 import { DoctorContext } from './context/DoctorContext';
 import DoctorDashboard from './pages/Doctor/DoctorDashboard';
 import DoctorAppointment from './pages/Doctor/DoctorAppointment';
@@ -27,11 +28,12 @@ const App = () => {
         <Slidebar />
         <Routes>
         {/* Admin Routes */}
-          <Route path='/' element={<></>} />
+          <Route path='/' element={aToken ? <Dashboard/> : <DoctorDashboard/>} />
           <Route path='/admin-dashboard' element={<Dashboard/>} />
           <Route path='all-appointments' element={<AllApointments/>} />
           <Route path='add-doctor' element={<AddDoctor/>} />
           <Route path='doctor-list' element={<DoctorList/>} />
+          <Route path='doctor-detail/:id' element={<DoctorDetail/>} />
         {/* Doctor Routes */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard/>} />
           <Route path='/doctor-appointment' element={<DoctorAppointment/>} />
