@@ -106,6 +106,11 @@ const DoctorReviewManagement = () => {
         </button>
       </div>
 
+      {/* Main Layout with Sidebar */}
+      <div className="flex gap-6">
+        {/* Main Content */}
+        <div className="flex-1">
+
       {/* Thống kê tổng quan */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
         <div className="bg-white p-6 rounded-lg shadow-sm border">
@@ -279,47 +284,94 @@ const DoctorReviewManagement = () => {
           </div>
         )}
       </div>
+        </div>
 
-      {/* Lời khuyên cải thiện */}
-      {stats.totalReviews > 0 && stats.averageRating < 4 && (
-        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="text-yellow-600">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z" />
-              </svg>
+        {/* Sidebar */}
+        <div className="w-80 space-y-6">
+          {/* Lời khuyên cải thiện */}
+          {stats.totalReviews > 0 && stats.averageRating < 4 && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-yellow-600">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12,2A7,7 0 0,1 19,9C19,11.38 17.81,13.47 16,14.74V17A1,1 0 0,1 15,18H9A1,1 0 0,1 8,17V14.74C6.19,13.47 5,11.38 5,9A7,7 0 0,1 12,2M9,21V20H15V21A1,1 0 0,1 14,22H10A1,1 0 0,1 9,21M12,4A5,5 0 0,0 7,9C7,11.05 8.23,12.81 10,13.58V16H14V13.58C15.77,12.81 17,11.05 17,9A5,5 0 0,0 12,4Z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-yellow-800 mb-2">Gợi ý cải thiện</h3>
+                  <ul className="text-sm text-yellow-700 space-y-1">
+                    <li>• Lắng nghe phản hồi của bệnh nhân và cải thiện dịch vụ</li>
+                    <li>• Tăng cường giao tiếp với bệnh nhân trong quá trình khám</li>
+                    <li>• Đảm bảo thời gian khám đúng hẹn</li>
+                    <li>• Giải thích rõ ràng về tình trạng sức khỏe và phương pháp điều trị</li>
+                  </ul>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="font-medium text-yellow-800 mb-2">Gợi ý cải thiện</h3>
-              <ul className="text-sm text-yellow-700 space-y-1">
-                <li>• Lắng nghe phản hồi của bệnh nhân và cải thiện dịch vụ</li>
-                <li>• Tăng cường giao tiếp với bệnh nhân trong quá trình khám</li>
-                <li>• Đảm bảo thời gian khám đúng hẹn</li>
-                <li>• Giải thích rõ ràng về tình trạng sức khỏe và phương pháp điều trị</li>
-              </ul>
+          )}
+
+          {/* Lời cảm ơn cho đánh giá tốt */}
+          {stats.totalReviews > 0 && stats.averageRating >= 4.5 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="text-green-600">
+                  <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.78L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="font-medium text-green-800 mb-2">Xuất sắc!</h3>
+                  <p className="text-sm text-green-700">
+                    Bạn đang cung cấp dịch vụ khám bệnh rất tốt. Hãy tiếp tục duy trì chất lượng này!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Thống kê nhanh */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-gray-800 mb-3">Tóm tắt nhanh</h3>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Tổng đánh giá</span>
+                <span className="font-medium">{stats.totalReviews}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Điểm trung bình</span>
+                <span className="font-medium text-[#5F6FFF]">{stats.averageRating}/5.0</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Đánh giá tích cực</span>
+                <span className="font-medium text-green-600">
+                  {stats.totalReviews > 0 
+                    ? Math.round(((stats.ratingDistribution[4] + stats.ratingDistribution[5]) / stats.totalReviews) * 100)
+                    : 0}%
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Mục tiêu cải thiện */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h3 className="font-medium text-gray-800 mb-3">Mục tiêu cải thiện</h3>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#5F6FFF]"></div>
+                <span>Đạt điểm trung bình 4.5+</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#5F6FFF]"></div>
+                <span>Giảm đánh giá tiêu cực xuống dưới 5%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-[#5F6FFF]"></div>
+                <span>Tăng số lượng đánh giá tích cực</span>
+              </div>
             </div>
           </div>
         </div>
-      )}
-
-      {/* Lời cảm ơn cho đánh giá tốt */}
-      {stats.totalReviews > 0 && stats.averageRating >= 4.5 && (
-        <div className="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <div className="text-green-600">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M23,12L20.56,9.22L20.9,5.54L17.29,4.72L15.4,1.54L12,3L8.6,1.54L6.71,4.72L3.1,5.53L3.44,9.21L1,12L3.44,14.78L3.1,18.47L6.71,19.29L8.6,22.47L12,21L15.4,22.46L17.29,19.28L20.9,18.46L20.56,14.78L23,12M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z" />
-              </svg>
-            </div>
-            <div>
-              <h3 className="font-medium text-green-800 mb-2">Xuất sắc!</h3>
-              <p className="text-sm text-green-700">
-                Bạn đang cung cấp dịch vụ khám bệnh rất tốt. Hãy tiếp tục duy trì chất lượng này!
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
