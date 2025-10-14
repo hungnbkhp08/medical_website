@@ -131,80 +131,52 @@ const adminDashboard = async (req, res) => {
         const doctors = await doctorModel.find({});
         const users = await userModel.find({});
         const appointments = await appointmentModel.find({});
-        const doctorMostAppointments = await appointmentModel.aggregate([
-            {
-                $group: {
-                    _id: "$userId",
-                    count: { $sum: 1 },
-                },
-            },
-            {
-                $sort: { count: -1 },
-            },
-            { $limit: 3 },
-            {
-                $lookup: {
-                    from: "doctors",          // tên collection trong MongoDB
-                    localField: "_id",      // _id ở group chính là userId
-                    foreignField: "_id",    // _id của user
-                    as: "docInfo"
-                }
-            },
-            {
-                $unwind: "$docInfo" // tách object trong mảng docInfo   
-            },
-            {
-                $project: {
-                    _id: 0,
-                    userId: "$_id",
-                    count: 1,
-                    "docInfo.name": 1,
-                    "docInfo.email": 1,
-                    "docInfo.image": 1
-                }
-            }
-        ]);
-        const patientsMostAppointments = await appointmentModel.aggregate([
-            {
-                $group: {
-                    _id: "$docId",
-                    count: { $sum: 1 },
-                },
-            },
-            {
-                $sort: { count: -1 },
-            },
-            { $limit: 3 },
-            {
-                $lookup: {
-                    from: "users",          // tên collection trong MongoDB
-                    localField: "_id",      // _id ở group chính là userId
-                    foreignField: "_id",    // _id của user
-                    as: "userInfo"
-                }
-            },
-            {
-                $unwind: "$userInfo" // tách object trong mảng userInfo
-            },
-            {
-                $project: {
-                    _id: 0,
-                    userId: "$_id",
-                    count: 1,
-                    "userInfo.name": 1,
-                    "userInfo.email": 1,
-                    "userInfo.image": 1
-                }
-            }
-        ]);
+        // tính bệnh nhân có nhiều lịch hẹn nhất
+        const countMap = {};
+        for (const appt of appointments) {
+            const userId = appt.userId?.toString();
+            countMap[userId] = (countMap[userId] || 0) + 1;
+        }
+        const topUsers = Object.entries(countMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([userId, count]) => ({ userId, count }));
+        const userIds = topUsers.map(u => u.userId);
+        const patient = await userModel.find({ _id: { $in: userIds } });
+        const patientsMostAppointments = patient.map(user => {
+            const found = topUsers.find(u => u.userId === user._id.toString());
+            return {
+                user,
+                count: found?.count || 0
+            };
+        });
+        // tính bác sĩ có nhiều lịch hẹn nhất
+        const docCountMap = {};
+        for (const appt of appointments) {
+            const docId = appt.docId?.toString();
+            docCountMap[docId] = (docCountMap[docId] || 0) + 1;
+        }
+        const topDocs = Object.entries(docCountMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([docId, count]) => ({ docId, count }));
+        const docIds = topDocs.map(d => d.docId);
+        const doc = await doctorModel.find({ _id: { $in: docIds } });
+        const doctorMostAppointments = doc.map(doctor => {
+            const found = topDocs.find(d => d.docId === doctor._id.toString());
+            return {
+                doctor,
+                count: found?.count || 0
+            };
+        });
         const dashData = {
             doctors: doctors.length,
             appointments: appointments.length,
             patients: users.length,
             latestAppointments: appointments.reverse().slice(0, 5),
             totalEarnings: appointments.reduce((total, appointment) => total + (appointment.amount || 0), 0),
-            patientsMostAppointments: patientsMostAppointments.length > 0 ? patientsMostAppointments[0] : null,
-            doctorMostAppointments: doctorMostAppointments.length > 0 ? doctorMostAppointments[0] : null,
+            patientsMostAppointments: patientsMostAppointments,
+            doctorMostAppointments: doctorMostAppointments,
         };
 
         res.json({ success: true, dashData });

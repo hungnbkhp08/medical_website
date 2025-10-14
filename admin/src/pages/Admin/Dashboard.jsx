@@ -58,7 +58,6 @@ const Dashboard = () => {
   };
 
   const formatCurrency = (value) => {
-    console.log(value);
     return new Intl.NumberFormat('vi-VN', {
       style: 'currency',
       currency: 'VND'
@@ -186,7 +185,7 @@ const Dashboard = () => {
               <div className='space-y-8'>
                 {/* Biểu đồ lịch hẹn theo ngày - Full width */}
                 <div className='bg-white p-8 rounded-lg border shadow-sm'>
-                  <h3 className='text-xl font-semibold mb-6 text-gray-800'>Lịch hẹn theo ngày</h3>
+                  <h3 className='text-xl font-semibold mb-6 text-gray-800'>Lịch hẹn </h3>
                   <ResponsiveContainer width="100%" height={400}>
                     <BarChart data={getChartData()} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -309,25 +308,36 @@ const Dashboard = () => {
                   </select>
                 </div>
                 
-                {dashData.doctorMostAppointments ? (
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200'>
-                      <img 
-                        src={dashData.doctorMostAppointments.docInfo.image} 
-                        alt="" 
-                        className='w-16 h-16 rounded-full object-cover border-2 border-blue-300'
-                      />
-                      <div className='flex-1'>
-                        <h4 className='font-semibold text-gray-800'>{dashData.doctorMostAppointments.docInfo.name}</h4>
-                        <p className='text-sm text-gray-600'>{dashData.doctorMostAppointments.docInfo.email}</p>
-                        <p className='text-lg font-bold text-blue-600 mt-1'>{dashData.doctorMostAppointments.count} lịch hẹn</p>
-                      </div>
-                      <div className='text-right'>
-                        <div className='bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium'>
-                          #1
+                {dashData.doctorMostAppointments && dashData.doctorMostAppointments.length > 0 ? (
+                  <div className='space-y-3'>
+                    {dashData.doctorMostAppointments.map((item, index) => {
+                      const rankColors = [
+                        { bg: 'from-yellow-50 to-yellow-100', border: 'border-yellow-200', text: 'text-yellow-600', badge: 'bg-yellow-500' },
+                        { bg: 'from-gray-50 to-gray-100', border: 'border-gray-200', text: 'text-gray-600', badge: 'bg-gray-500' },
+                        { bg: 'from-orange-50 to-orange-100', border: 'border-orange-200', text: 'text-orange-600', badge: 'bg-orange-500' }
+                      ];
+                      const color = rankColors[index] || rankColors[2];
+                      
+                      return (
+                        <div key={item.doctor._id} className={`flex items-center gap-4 p-4 bg-gradient-to-r ${color.bg} rounded-lg border ${color.border}`}>
+                          <img 
+                            src={item.doctor.image} 
+                            alt="" 
+                            className={`w-12 h-12 rounded-full object-cover border-2 ${color.border}`}
+                          />
+                          <div className='flex-1'>
+                            <h4 className='font-semibold text-gray-800'>{item.doctor.name}</h4>
+                            <p className='text-xs text-gray-600'>{item.doctor.speciality}</p>
+                            <p className={`text-sm font-bold ${color.text} mt-1`}>{item.count} lịch hẹn</p>
+                          </div>
+                          <div className='text-right'>
+                            <div className={`${color.badge} text-white px-2 py-1 rounded-full text-xs font-medium`}>
+                              #{index + 1}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className='text-center py-8 text-gray-500'>
@@ -347,25 +357,36 @@ const Dashboard = () => {
                   </select>
                 </div>
                 
-                {dashData.patientsMostAppointments ? (
-                  <div className='space-y-4'>
-                    <div className='flex items-center gap-4 p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200'>
-                      <img 
-                        src={dashData.patientsMostAppointments.userInfo.image || '/api/placeholder/64/64'} 
-                        alt="" 
-                        className='w-16 h-16 rounded-full object-cover border-2 border-green-300'
-                      />
-                      <div className='flex-1'>
-                        <h4 className='font-semibold text-gray-800'>{dashData.patientsMostAppointments.userInfo.name}</h4>
-                        <p className='text-sm text-gray-600'>{dashData.patientsMostAppointments.userInfo.email}</p>
-                        <p className='text-lg font-bold text-green-600 mt-1'>{dashData.patientsMostAppointments.count} lịch hẹn</p>
-                      </div>
-                      <div className='text-right'>
-                        <div className='bg-green-500 text-white px-3 py-1 rounded-full text-sm font-medium'>
-                          #1
+                {dashData.patientsMostAppointments && dashData.patientsMostAppointments.length > 0 ? (
+                  <div className='space-y-3'>
+                    {dashData.patientsMostAppointments.map((item, index) => {
+                      const rankColors = [
+                        { bg: 'from-yellow-50 to-yellow-100', border: 'border-yellow-200', text: 'text-yellow-600', badge: 'bg-yellow-500' },
+                        { bg: 'from-gray-50 to-gray-100', border: 'border-gray-200', text: 'text-gray-600', badge: 'bg-gray-500' },
+                        { bg: 'from-orange-50 to-orange-100', border: 'border-orange-200', text: 'text-orange-600', badge: 'bg-orange-500' }
+                      ];
+                      const color = rankColors[index] || rankColors[2];
+                      
+                      return (
+                        <div key={item.user._id} className={`flex items-center gap-4 p-4 bg-gradient-to-r ${color.bg} rounded-lg border ${color.border}`}>
+                          <img 
+                            src={item.user.image || '/api/placeholder/48/48'} 
+                            alt="" 
+                            className={`w-12 h-12 rounded-full object-cover border-2 ${color.border}`}
+                          />
+                          <div className='flex-1'>
+                            <h4 className='font-semibold text-gray-800'>{item.user.name}</h4>
+                            <p className='text-xs text-gray-600'>{item.user.email}</p>
+                            <p className={`text-sm font-bold ${color.text} mt-1`}>{item.count} lịch hẹn</p>
+                          </div>
+                          <div className='text-right'>
+                            <div className={`${color.badge} text-white px-2 py-1 rounded-full text-xs font-medium`}>
+                              #{index + 1}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className='text-center py-8 text-gray-500'>
