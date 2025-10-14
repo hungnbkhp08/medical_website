@@ -1,6 +1,6 @@
 import validator from 'validator';
 import bcrypt from 'bcrypt';
-import{v2 as cloudinary} from 'cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
 import doctorModel from '../models/doctorModel.js';
 import jwt from 'jsonwebtoken';
 import appointmentModel from '../models/appointmentModel.js';
@@ -15,7 +15,7 @@ const addDoctor = async (req, res) => {
         if (!name || !email || !password || !imageFile || !speciality || !degree || !experience || !about || !fees || !address) {
             return res.json({ success: false, message: "Please fill all the fields" });
         }
-        if(!validator.isEmail(email)) {
+        if (!validator.isEmail(email)) {
             return res.json({ success: false, message: "Please enter a valid email" });
         }
         if (password.length < 8) {
@@ -25,7 +25,7 @@ const addDoctor = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         //uploading image to cloudinary
-        const imageUpload= await cloudinary.uploader.upload(imageFile.path, {resource_type: "image"});
+        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url;
         const doctorData = {
             name,
@@ -46,36 +46,36 @@ const addDoctor = async (req, res) => {
     }
     catch (error) {
         console.error("Error in addDoctor:", error);
-        res.json({ success: false, message:error.message});
+        res.json({ success: false, message: error.message });
     }
 }
- // API admin login
- const loginAdmin = async (req, res) => {
-    try{
+// API admin login
+const loginAdmin = async (req, res) => {
+    try {
         const { email, password } = req.body;
-        if(email===process.env.ADMIN_EMAIL && password===process.env.ADMIN_PASSWORD){
-            const token = jwt.sign(email+password, process.env.JWT_SECRET);
+        if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+            const token = jwt.sign(email + password, process.env.JWT_SECRET);
             return res.json({ success: true, token });
         }
-        else{
+        else {
             return res.json({ success: false, message: "Invalid email or password" });
         }
     }
     catch (error) {
-        console.error( error);
-        res.json({ success: false, message:error.message});
+        console.error(error);
+        res.json({ success: false, message: error.message });
     }
- }
- // API get all doctor
-const allDoctor= async (req,res) =>{
-     try {
-         const doctors=await doctorModel.find({}).select('-password')
-         res.json({success:true,doctors})
-     }
-     catch(error){
+}
+// API get all doctor
+const allDoctor = async (req, res) => {
+    try {
+        const doctors = await doctorModel.find({}).select('-password')
+        res.json({ success: true, doctors })
+    }
+    catch (error) {
         console.log(error)
-        res.json({success:false,message:error.message})
-     }
+        res.json({ success: false, message: error.message })
+    }
 
 }
 //API get list appointment 
@@ -89,26 +89,26 @@ const appointmentsAdmin = async (req, res) => {
     }
 };
 //API to cancel apppointment 
-const cancelAppointment =async(req,res) =>{
-    try{
-        const {  appointmentId } = req.body;
+const cancelAppointment = async (req, res) => {
+    try {
+        const { appointmentId } = req.body;
         const appointmentData = await appointmentModel.findById(appointmentId);
         if (!appointmentData) {
             return res.json({ success: false, message: 'Appointment not found' });
         }
-    
+
         // Cập nhật trạng thái bị hủy của lịch hẹn
         await appointmentModel.findByIdAndUpdate(appointmentId, { cancelled: true });
-    
+
         // Giải phóng slot của bác sĩ
         const { docId, slotDate, slotTime } = appointmentData;
         const doctorData = await doctorModel.findById(docId);
         if (doctorData) {
             let slots_booked = doctorData.slots_booked;
-    
+
             // Xóa slotTime khỏi danh sách đã đặt trong ngày slotDate
             slots_booked[slotDate] = slots_booked[slotDate].filter(e => e !== slotTime);
-    
+
             // Cập nhật lại dữ liệu bác sĩ
             await doctorModel.findByIdAndUpdate(docId, { slots_booked });
         }
@@ -117,11 +117,11 @@ const cancelAppointment =async(req,res) =>{
             userData.email,
             'Hủy lịch khám thành công',
             `Xin chào ${userData.name},\n\nLịch khám của bạn vào ngày ${slotDate} lúc ${slotTime} đã được hủy bởi hệ thống.\n\nTrân trọng!`
-          );
-    
+        );
+
         return res.json({ success: true, message: 'Appointment cancelled successfully' });
-    } 
-    catch(error){
+    }
+    catch (error) {
         console.error(error);
         res.json({ success: false, message: error.message });
     }
@@ -131,12 +131,80 @@ const adminDashboard = async (req, res) => {
         const doctors = await doctorModel.find({});
         const users = await userModel.find({});
         const appointments = await appointmentModel.find({});
-
+        const doctorMostAppointments = await appointmentModel.aggregate([
+            {
+                $group: {
+                    _id: "$userId",
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { count: -1 },
+            },
+            { $limit: 3 },
+            {
+                $lookup: {
+                    from: "doctors",          // tên collection trong MongoDB
+                    localField: "_id",      // _id ở group chính là userId
+                    foreignField: "_id",    // _id của user
+                    as: "docInfo"
+                }
+            },
+            {
+                $unwind: "$docInfo" // tách object trong mảng docInfo   
+            },
+            {
+                $project: {
+                    _id: 0,
+                    userId: "$_id",
+                    count: 1,
+                    "docInfo.name": 1,
+                    "docInfo.email": 1,
+                    "docInfo.image": 1
+                }
+            }
+        ]);
+        const patientsMostAppointments = await appointmentModel.aggregate([
+            {
+                $group: {
+                    _id: "$docId",
+                    count: { $sum: 1 },
+                },
+            },
+            {
+                $sort: { count: -1 },
+            },
+            { $limit: 3 },
+            {
+                $lookup: {
+                    from: "users",          // tên collection trong MongoDB
+                    localField: "_id",      // _id ở group chính là userId
+                    foreignField: "_id",    // _id của user
+                    as: "userInfo"
+                }
+            },
+            {
+                $unwind: "$userInfo" // tách object trong mảng userInfo
+            },
+            {
+                $project: {
+                    _id: 0,
+                    userId: "$_id",
+                    count: 1,
+                    "userInfo.name": 1,
+                    "userInfo.email": 1,
+                    "userInfo.image": 1
+                }
+            }
+        ]);
         const dashData = {
             doctors: doctors.length,
             appointments: appointments.length,
             patients: users.length,
-            latestAppointments: appointments.reverse().slice(0, 5)
+            latestAppointments: appointments.reverse().slice(0, 5),
+            totalEarnings: appointments.reduce((total, appointment) => total + (appointment.amount || 0), 0),
+            patientsMostAppointments: patientsMostAppointments.length > 0 ? patientsMostAppointments[0] : null,
+            doctorMostAppointments: doctorMostAppointments.length > 0 ? doctorMostAppointments[0] : null,
         };
 
         res.json({ success: true, dashData });
@@ -170,6 +238,7 @@ const deleteDoctor = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 }
-export { addDoctor,loginAdmin,allDoctor, appointmentsAdmin,cancelAppointment,adminDashboard,
-    updateDoctorProfile,deleteDoctor
+export {
+    addDoctor, loginAdmin, allDoctor, appointmentsAdmin, cancelAppointment, adminDashboard,
+    updateDoctorProfile, deleteDoctor
 };  
