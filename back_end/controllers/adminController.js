@@ -131,18 +131,24 @@ const adminDashboard = async (req, res) => {
         const doctors = await doctorModel.find({});
         const users = await userModel.find({});
         const appointments = await appointmentModel.find({});
+        // chỉ lấy lịch hẹn đã hoàn thành
+        const completedAppointments = appointments.filter(appt => appt.isCompleted);
+
         // tính bệnh nhân có nhiều lịch hẹn nhất
         const countMap = {};
-        for (const appt of appointments) {
+        for (const appt of completedAppointments) {
             const userId = appt.userId?.toString();
+            if (!userId) continue;
             countMap[userId] = (countMap[userId] || 0) + 1;
         }
         const topUsers = Object.entries(countMap)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([userId, count]) => ({ userId, count }));
+
         const userIds = topUsers.map(u => u.userId);
         const patient = await userModel.find({ _id: { $in: userIds } });
+
         const patientsMostAppointments = patient.map(user => {
             const found = topUsers.find(u => u.userId === user._id.toString());
             return {
@@ -150,18 +156,22 @@ const adminDashboard = async (req, res) => {
                 count: found?.count || 0
             };
         });
+
         // tính bác sĩ có nhiều lịch hẹn nhất
         const docCountMap = {};
-        for (const appt of appointments) {
+        for (const appt of completedAppointments) {
             const docId = appt.docId?.toString();
+            if (!docId) continue;
             docCountMap[docId] = (docCountMap[docId] || 0) + 1;
         }
         const topDocs = Object.entries(docCountMap)
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3)
             .map(([docId, count]) => ({ docId, count }));
+
         const docIds = topDocs.map(d => d.docId);
         const doc = await doctorModel.find({ _id: { $in: docIds } });
+
         const doctorMostAppointments = doc.map(doctor => {
             const found = topDocs.find(d => d.docId === doctor._id.toString());
             return {
@@ -174,7 +184,7 @@ const adminDashboard = async (req, res) => {
             appointments: appointments.length,
             patients: users.length,
             latestAppointments: appointments.reverse().slice(0, 5),
-            totalEarnings: appointments.reduce((total, appointment) => total + (appointment.amount || 0), 0),
+            totalEarnings: appointments.reduce((total, appointment) => total + (appointment.isCompleted ? (appointment.amount || 0) : 0), 0),
             patientsMostAppointments: patientsMostAppointments,
             doctorMostAppointments: doctorMostAppointments,
         };
