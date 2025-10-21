@@ -337,7 +337,7 @@ const googleLoginUser = async (req, res) => {
       });
   
       const payload = ticket.getPayload();
-      const { email, name, sub } = payload; // sub = unique google id
+      const { email, name, sub } = payload; 
   
       // tìm user theo email
       let user = await userModel.findOne({ email });
@@ -360,5 +360,39 @@ const googleLoginUser = async (req, res) => {
       res.json({ success: false, message: "Google login failed" });
     }
   };    
+  const googleSignUpUser = async (req, res) => {
+    try {
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+      const { credential } = req.body;
+  
+      // verify token từ google
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+  
+      const payload = ticket.getPayload();
+      const { email, name, sub } = payload; 
+  
+      // tìm user theo email
+      let user = await userModel.findOne({ email });
+
+      if (!user) {
+        // nếu chưa có thì tạo mới
+        user = await userModel.create({
+          name,
+          email,
+          password: sub,
+        });
+      }
+      else{
+        return res.json({ success: false, message: "Email đã được đăng ký, vui lòng kiểm tra lại!" });
+      }
+      res.json({ success: true, message: "Đăng ký thành công, vui lòng đăng nhập" });
+    } catch (error) {
+      console.error(error);
+      res.json({ success: false, message: "Google login failed" });
+    }
+  }; 
 export { registerUser, loginUser, getProfile, updateProfile, bookAppointment
-    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser,downloadResult };
+    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser,downloadResult,googleSignUpUser };

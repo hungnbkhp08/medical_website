@@ -5,6 +5,7 @@ import { toast } from 'react-toastify'
 import { useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
 import { jwtDecode } from 'jwt-decode'
+import GoogleAuthButton from '../components/GoogleAuthButton'
 
 const Login = () => {
   const { backendUrl, token, setToken } = useContext(AppContext)
@@ -40,29 +41,6 @@ const Login = () => {
       toast.error(error.message)
     }
   }
-  const handleGoogleSuccess = async (credentialResponse) => {
-    try {
-      const decoded = jwtDecode(credentialResponse.credential)
-      console.log("Google user:", decoded)
-
-      // gửi token GG về backend để xử lý (tạo user nếu chưa có)
-      const { data } = await axios.post(`${backendUrl}/api/user/google-login`, {
-        credential: credentialResponse.credential
-      })
-
-      if (data.success) {
-        localStorage.setItem('token', data.token)
-        setToken(data.token)
-        toast.success("Login with Google successful")
-      } else {
-        toast.error(data.message)
-      }
-    } catch (error) {
-      toast.error("Google login failed")
-      console.error(error)
-    }
-  }
-
   useEffect(() => {
     if (token) {
       navigate('/')
@@ -70,62 +48,95 @@ const Login = () => {
   }, [token])
 
   return (
-    <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center'>
-      <div className='flex flex-col gap-3 m-auto items-start p-8 min-w-[340px] sm:min-w-96 border rounded-xl text-zinc-600 text-sm shadow-lg'>
-        <p className='text-2xl font-semibold'>{state === 'Sign Up' ? "Tạo tài khoản" : "Đăng Nhập"}</p>
-        <p>Vui lòng {state === 'Sign Up' ? "đăng ký" : "đăng nhập"} để đặt lịch hẹn</p>
+    <form onSubmit={onSubmitHandler} className='min-h-[80vh] flex items-center justify-center py-10'>
+      <div className='flex flex-col gap-4 m-auto items-start p-8 sm:p-10 min-w-[340px] sm:min-w-[450px] border rounded-2xl text-zinc-600 text-sm shadow-xl bg-white'>
+        {/* Header */}
+        <div className='w-full text-center mb-2'>
+          <p className='text-3xl font-bold text-gray-800 mb-2'>
+            {state === 'Sign Up' ? "Tạo tài khoản" : "Chào mừng trở lại"}
+          </p>
+          <p className='text-gray-600'>
+            {state === 'Sign Up' 
+              ? "Tạo tài khoản để bắt đầu đặt lịch hẹn với bác sĩ" 
+              : "Đăng nhập để tiếp tục sử dụng dịch vụ"
+            }
+          </p>
+        </div>
 
         {state === 'Sign Up' &&
           <div className='w-full'>
-            <p className='w-full'>Full Name</p>
+            <p className='font-medium mb-2 text-gray-700'>Họ và tên</p>
             <input
-              className='border border-zinc-300 rounded w-full p-2 mt-1 box-border'
+              className='border border-gray-300 rounded-lg w-full p-3 mt-1 focus:outline-none focus:ring-2 focus:ring-[#5f6FFF] focus:border-transparent transition-all'
               type="text"
               onChange={(e) => setName(e.target.value)}
               value={name}
+              placeholder='Nhập họ và tên của bạn'
               required
             />
           </div>
         }
 
         <div className='w-full'>
-          <p className='w-full'>Email</p>
+          <p className='font-medium mb-2 text-gray-700'>Email</p>
           <input
-            className='border border-zinc-300 rounded w-full p-2 mt-1 box-border'
+            className='border border-gray-300 rounded-lg w-full p-3 mt-1 focus:outline-none focus:ring-2 focus:ring-[#5f6FFF] focus:border-transparent transition-all'
             type="email"
             onChange={(e) => setEmail(e.target.value)}
             value={email}
+            placeholder='example@email.com'
             required
           />
         </div>
 
         <div className='w-full'>
-          <p className='w-full'>Password</p>
+          <p className='font-medium mb-2 text-gray-700'>Mật khẩu</p>
           <input
-            className='border border-zinc-300 rounded w-full p-2 mt-1 box-border'
+            className='border border-gray-300 rounded-lg w-full p-3 mt-1 focus:outline-none focus:ring-2 focus:ring-[#5f6FFF] focus:border-transparent transition-all'
             type="password"
             onChange={(e) => setPassword(e.target.value)}
             value={password}
+            placeholder='Nhập mật khẩu'
             required
           />
         </div>
 
-        <button type='submit' className='bg-[#5f6FFF] text-white w-full py-2 rounded-md text-base cursor-pointer'>
+        <button 
+          type='submit' 
+          className='bg-[#5f6FFF] text-white w-full py-3 rounded-lg text-base font-medium cursor-pointer hover:bg-[#4f5fef] transition-all shadow-md hover:shadow-lg mt-2'
+        >
           {state === 'Sign Up' ? "Đăng ký" : "Đăng nhập"}
         </button>
 
-        {state === 'Sign Up'
-          ? <p>Đã có tài khoản ? <span onClick={()=>setState('Login')} className='text-[#5f6FFF] underline cursor-pointer'>Đăng nhập</span></p>
-          :<p>Tạo tài khoản mới ? <span onClick={()=>setState('Sign Up')} className='text-[#5f6FFF] underline cursor-pointer'>Đăng ký</span></p>
-        }
+        <div className='w-full text-center'>
+          {state === 'Sign Up'
+            ? <p className='text-gray-600'>
+                Đã có tài khoản? {' '}
+                <span 
+                  onClick={() => setState('Login')} 
+                  className='text-[#5f6FFF] font-medium underline cursor-pointer hover:text-[#4f5fef] transition-colors'
+                >
+                  Đăng nhập ngay
+                </span>
+              </p>
+            : <p className='text-gray-600'>
+                Chưa có tài khoản? {' '}
+                <span 
+                  onClick={() => setState('Sign Up')} 
+                  className='text-[#5f6FFF] font-medium underline cursor-pointer hover:text-[#4f5fef] transition-colors'
+                >
+                  Đăng ký ngay
+                </span>
+              </p>
+          }
+        </div>
 
         {/* Nút Google Login */}
-        <div className='w-full flex justify-center mt-4'>
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => toast.error("Google login failed")}
-          />
-        </div>
+        <GoogleAuthButton
+          type={state === 'Sign Up' ? 'signup' : 'login'}
+          backendUrl={backendUrl}
+          setToken={setToken}
+        />
       </div>
     </form>
   )
