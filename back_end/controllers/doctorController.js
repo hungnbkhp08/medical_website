@@ -74,10 +74,11 @@ const markAppointmentCompleted = async (req, res) => {
             const result ={
                 appointmentId,
                 diagnosis,
-                prescription
+                prescription,
+                userId: appointment.userId
             }
             const newResult = new resultModel(result);
-            await newResult.save()   
+            await newResult.save();
             // Send email to user about appointment completion
             const userData = await userModel.findById(appointment.userId).select('-password');
             await sendMailWithReport(

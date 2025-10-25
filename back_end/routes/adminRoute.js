@@ -3,6 +3,7 @@ import { addDoctor,adminDashboard,allDoctor,appointmentsAdmin,cancelAppointment,
 import upload from '../middlewares/multer.js';
 import authAdmin from '../middlewares/authAdmin.js';
 import { changeAvailablity } from '../controllers/doctorController.js';
+import { managerPatient } from '../controllers/userController.js';
 
 const adminRouter = express.Router();
 
@@ -15,4 +16,5 @@ adminRouter.post('/cancel-appointment',authAdmin,cancelAppointment)
 adminRouter.post('/dashboard',authAdmin,adminDashboard)
 adminRouter.post('/update-doctor',authAdmin,updateDoctorProfile)
 adminRouter.post('/delete-doctor',authAdmin,deleteDoctor)
+adminRouter.post('/manager-patient',authAdmin,managerPatient)
 export default adminRouter;

@@ -46,7 +46,7 @@ export const sendMailWithReport = async (to, diagnosis, prescription) => {
     attachments: [
       {
         filename: 'phieu-kham.pdf',
-        content: pdfBuffer(),
+        content: pdfBuffer,
         contentType: 'application/pdf'
       }
     ]

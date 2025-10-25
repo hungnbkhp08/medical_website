@@ -8,6 +8,7 @@ import appointmentModel from "../models/appointmentModel.js";
 import { sendMail } from '../utils/sendMail.js';
 import { OAuth2Client } from "google-auth-library";
 import {generateMedicalReport} from '../utils/createPdf.js';
+import resultModel from "../models/resultModel.js";
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -394,5 +395,27 @@ const googleLoginUser = async (req, res) => {
       res.json({ success: false, message: "Google login failed" });
     }
   }; 
+  const managerPatient = async (req, res) => {
+    try {
+      const results = await resultModel.find({});
+      const listUserId=[...new Set(results.map(result => result.userId))];
+      const users = await userModel.find({ _id: { $in: listUserId } }).select('-password');
+      const appointment = await appointmentModel.find({ userId: { $in: listUserId } });
+      const managerPatients = users.map(user => {
+        const userResults = results.filter(result => result.userId.toString() === user._id.toString());
+        const userAppointments = appointment.filter(app => app.userId.toString() === user._id.toString());
+        return {
+          ...user.toObject(),
+          results: userResults,
+          appointments: userAppointments
+        };
+      });
+      res.json({ success: true, managerPatients });
+    }
+    catch (error) {
+        console.error(error);
+        res.json({ success: false, message: error.message });
+    }
+}
 export { registerUser, loginUser, getProfile, updateProfile, bookAppointment
-    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser,downloadResult,googleSignUpUser };
+    , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser,downloadResult,googleSignUpUser, managerPatient };

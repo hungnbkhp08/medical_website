@@ -25,6 +25,10 @@ const Slidebar = () => {
           <img src={assets.people_icon} alt="" />
           <p className='hidden md:block'>Danh sách bác sỹ</p>
         </NavLink>
+        <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#5f6FFF]' : ''}`} to={'/patient-records'}>
+          <img src={assets.patient} alt="" />
+          <p className='hidden md:block'>Hồ sơ bệnh nhân</p>
+        </NavLink>
         <NavLink className={({ isActive }) => `flex items-center gap-3 py-3.5 px-3 md:px-9 md:min-w-72 cursor-pointer ${isActive ? 'bg-[#F2F3FF] border-r-4 border-[#5f6FFF]' : ''}`} to={'/review-management'}>
           <img src={assets.star} alt="" />
           <p className='hidden md:block'>Quản lý đánh giá</p>
