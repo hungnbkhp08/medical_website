@@ -125,6 +125,7 @@ const doctorDashboard = async (req, res) => {
     try {
         const { docId } = req.body;
         const appointments = await appointmentModel.find({ docId });
+        const doctor= await doctorModel.findById(docId).select('-password -email');
         let earnings = 0;
         appointments.map((item) => {
             if (item.isCompleted || item.payment) {
@@ -139,9 +140,11 @@ const doctorDashboard = async (req, res) => {
         })
         const dashData = {
             appointments: appointments.length,
+            rating: (doctor.averageRating / 5) * 100 || 0,
             earnings,
             patients: patients.length,
-            lastestAppointments: appointments.reverse().slice(0, 5)
+            lastestAppointments: appointments.reverse().slice(0, 5),
+            listAppointments:appointments
         }
         res.json({ success: true, dashData });
     } catch (error) {

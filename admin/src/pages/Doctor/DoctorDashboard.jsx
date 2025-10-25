@@ -380,8 +380,8 @@ const DoctorDashboard = () => {
                                         </div>
                                         <div>
                                             <p className='text-2xl font-bold text-green-700'>
-                                                {dashData.lastestAppointments 
-                                                    ? Math.round((dashData.lastestAppointments.filter(apt => apt.isCompleted).length / dashData.lastestAppointments.length) * 100)
+                                                {dashData.listAppointments 
+                                                    ? Math.round((dashData.listAppointments.filter(apt => apt.isCompleted).length / dashData.listAppointments.length) * 100)
                                                     : 0}%
                                             </p>
                                             <p className='text-green-600 font-medium'>Tỷ lệ hoàn thành</p>
@@ -398,7 +398,7 @@ const DoctorDashboard = () => {
                                             </svg>
                                         </div>
                                         <div>
-                                            <p className='text-2xl font-bold text-blue-700'>95%</p>
+                                            <p className='text-2xl font-bold text-blue-700'>{dashData.rating==0?'Chưa có dữ liệu':dashData.rating.toFixed(2)}%</p>
                                             <p className='text-blue-600 font-medium'>Bệnh nhân hài lòng</p>
                                         </div>
                                     </div>
@@ -414,7 +414,7 @@ const DoctorDashboard = () => {
                                         </div>
                                         <div>
                                             <p className='text-2xl font-bold text-purple-700'>
-                                                {formatCurrency(dashData.earnings / (dashData.appointments || 1))}
+                                                {formatCurrency(dashData.earnings / (dashData.listAppointments.filter(apt => apt.isCompleted).length || 1))}
                                             </p>
                                             <p className='text-purple-600 font-medium'>Thu nhập/lịch hẹn</p>
                                         </div>
