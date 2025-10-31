@@ -102,14 +102,8 @@ const bookAppointment = async (req, res) => {
         }
         // check ví 
         const walletData = await walletModel.findOne({ docId: docId });
-        if (!walletData) {
-            return res.json({ success: false, message: 'Wallet not found for the doctor' });
-        }
-        if(walletData.status==='inactive') {
-            return res.json({ success: false, message: 'Doctor wallet is inactive' });
-        }
-        if (walletData.balance < docData.fees*0.1) {
-            return res.json({ success: false, message: 'Insufficient wallet balance' });
+        if (!walletData||walletData.status==='inactive'||walletData.balance < docData.fees*0.1) {
+            return res.json({ success: false, message: 'Không thể đặt lịch bác sỹ này.Vui lòng chuyển sang bác sỹ khác' });
         }
         // check trùng lịch 
         const checkAppointment = await appointmentModel.findOne({
@@ -119,7 +113,7 @@ const bookAppointment = async (req, res) => {
             cancelled: { $ne: 'true' }
         });
         if (checkAppointment) {
-            res.json({ success: false, message: 'You already booked an appointment at this time' });
+            res.json({ success: false, message: 'Bạn đã đặt lịch hẹn vào thời gian này' });
             return;
         }        
         let slots_booked = docData.slots_booked
