@@ -14,7 +14,8 @@ import patients_icon from './patients_icon.svg'
 import chat from './chat.svg'
 import star from './star.svg'
 import patient from './patient.svg'
-
+import wallet from './wallet.svg'
+import momo from './momo.webp'
 export const assets = {
     add_icon,
     admin_logo,
@@ -31,6 +32,7 @@ export const assets = {
     earning_icon,
     chat,
     star,
-    patient
-
+    patient,
+    wallet,
+    momo
 }

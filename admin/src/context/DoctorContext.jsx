@@ -60,6 +60,14 @@ const DoctorContextProvider= (props)=>{
             const {data}= await axios.post(backendUrl+'/api/doctor/dashboard',{},{headers:{dToken}})
             if(data.success){
                 setDashData(data.dashData)
+                const wallet = data.dashData.wallet;
+                const fees= data.dashData.fees;
+                if(wallet.status=='inactive'){
+                    toast.error('Ví đang không hoạt động.Vui lòng liên hệ quản trị để kích hoạt lại')
+                }
+                else if(wallet.balance < fees*0.1){
+                    toast.error('Số dư không đủ. Vui lòng nạp tiền.')
+                }
             }
             else{
                 toast.error(data.message)
@@ -141,7 +149,7 @@ const DoctorContextProvider= (props)=>{
         setDoctors,
         getUserData,
         users,
-        setUsers
+        setUsers,
     }
     return(
     <DoctorContext.Provider value={value}>

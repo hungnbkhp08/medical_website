@@ -6,6 +6,7 @@ import { sendMail,sendMailWithReport } from '../utils/sendMail.js';
 import userModel from "../models/userModel.js"
 import reviewModel from "../models/reviewModel.js";
 import resultModel from "../models/resultModel.js";
+import walletModel from "../models/walletModel.js";
 const changeAvailablity = async (req, res) => {
     try {
         const { docId } = req.body
@@ -37,7 +38,6 @@ const loginDoctor = async (req, res) => {
         if (!doctor) {
             return res.json({ success: false, message: 'Invalid credentials' });
         }
-
         const isMatch = await bcrypt.compare(password, doctor.password);
         if (isMatch) {
             const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET)
@@ -79,6 +79,16 @@ const markAppointmentCompleted = async (req, res) => {
             }
             const newResult = new resultModel(result);
             await newResult.save();
+            // Update user wallet balance
+            const wallet= await walletModel.findOne({docId: docId});
+            if(appointment.payment){
+                wallet.balance += appointment.amount*0.9; 
+                await wallet.save();
+            }
+            else{
+                wallet.balance = wallet.balance- appointment.amount*0.1; 
+                await wallet.save();
+            }
             // Send email to user about appointment completion
             const userData = await userModel.findById(appointment.userId).select('-password');
             await sendMailWithReport(
@@ -139,13 +149,16 @@ const doctorDashboard = async (req, res) => {
                 patients.push(item.userId);
             }
         })
+        const wallet = await walletModel.findOne({ docId });
         const dashData = {
             appointments: appointments.length,
             rating: (doctor.averageRating / 5) * 100 || 0,
-            earnings,
+            earnings: earnings * 0.9,
             patients: patients.length,
             lastestAppointments: appointments.reverse().slice(0, 5),
-            listAppointments:appointments
+            listAppointments:appointments,
+            wallet,
+            fees: doctor.fees
         }
         res.json({ success: true, dashData });
     } catch (error) {

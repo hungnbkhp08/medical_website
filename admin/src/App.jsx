@@ -20,6 +20,8 @@ import DoctorProfile from './pages/Doctor/DoctorProfile';
 import DoctorChat from './pages/Doctor/DoctorChat';
 import ReviewManagement from './pages/Admin/ReviewManagement';
 import DoctorReviewManagement from './pages/Doctor/DoctorReviewManagement';
+import DoctorWallet from './pages/Doctor/DoctorWallet';
+import WalletManagement from './pages/Admin/WalletManagement';
 const App = () => {
   const {aToken}= useContext(AdminContext)
   const {dToken}= useContext(DoctorContext)
@@ -39,11 +41,13 @@ const App = () => {
           <Route path='doctor-detail/:id' element={<DoctorDetail/>} />
           <Route path='review-management' element={<ReviewManagement/>} />
           <Route path='patient-records' element={<PatientRecords/>} />
+          <Route path='wallet-management' element={<WalletManagement/>} />
         {/* Doctor Routes */}
           <Route path='/doctor-dashboard' element={<DoctorDashboard/>} />
           <Route path='/doctor-appointment' element={<DoctorAppointment/>} />
           <Route path='/doctor-profile' element={<DoctorProfile/>} />
           <Route path='/doctor-reviews' element={<DoctorReviewManagement/>} />
+          <Route path='/doctor-wallet' element={<DoctorWallet/>} />
           <Route path='/chat' element={<DoctorChat/>} />
         </Routes>
       </div>

@@ -9,6 +9,7 @@ import { sendMail } from '../utils/sendMail.js';
 import { OAuth2Client } from "google-auth-library";
 import {generateMedicalReport} from '../utils/createPdf.js';
 import resultModel from "../models/resultModel.js";
+import walletModel from "../models/walletModel.js";
 const registerUser = async (req, res) => {
     try {
         const { name, email, password } = req.body
@@ -98,6 +99,17 @@ const bookAppointment = async (req, res) => {
         const docData = await doctorModel.findById(docId).select('-password')
         if (!docData.available) {
             res.json({ success: false, message: 'Doctor not available' });
+        }
+        // check ví 
+        const walletData = await walletModel.findOne({ docId: docId });
+        if (!walletData) {
+            return res.json({ success: false, message: 'Wallet not found for the doctor' });
+        }
+        if(walletData.status==='inactive') {
+            return res.json({ success: false, message: 'Doctor wallet is inactive' });
+        }
+        if (walletData.balance < docData.fees*0.1) {
+            return res.json({ success: false, message: 'Insufficient wallet balance' });
         }
         // check trùng lịch 
         const checkAppointment = await appointmentModel.findOne({
