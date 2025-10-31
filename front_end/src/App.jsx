@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import Home from './pages/Home';
 import Doctors from './pages/Doctors';
@@ -14,6 +14,9 @@ import { ToastContainer } from 'react-toastify';
 import PaymentSuccess from './pages/PaymentSuccess';
 import Chatbot from './components/Chatbot';
 import PatientChat from './pages/PatientChat';
+import Unauthorized from './pages/Unauthorized';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { AppContext } from './context/AppContext';
 
 // import provider của Google
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -21,6 +24,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 const App = () => {
   const location = useLocation();
   const hideFooter = location.pathname === '/chat';
+  const { token } = useContext(AppContext);
 
   return (
     // Bọc toàn bộ App bằng GoogleOAuthProvider
@@ -35,11 +39,32 @@ const App = () => {
           <Route path='/login' element={<Login />} />
           <Route path='/about' element={<About />} />
           <Route path='/contact' element={<Contact />} />
-          <Route path='/my-profile' element={<MyProfile />} />
-          <Route path='/my-appointments' element={<MyAppointments />} />
-          <Route path='/appointment/:docId' element={<Appointment />} />
-          <Route path='/payment-success' element={<PaymentSuccess />} />
-          <Route path='/chat' element={<PatientChat />} />
+          <Route path='/my-profile' element={
+            <ProtectedRoute token={token}>
+              <MyProfile />
+            </ProtectedRoute>
+          } />
+          <Route path='/my-appointments' element={
+            <ProtectedRoute token={token}>
+              <MyAppointments />
+            </ProtectedRoute>
+          } />
+          <Route path='/appointment/:docId' element={
+            <ProtectedRoute token={token}>
+              <Appointment />
+            </ProtectedRoute>
+          } />
+          <Route path='/payment-success' element={
+            <ProtectedRoute token={token}>
+              <PaymentSuccess />
+            </ProtectedRoute>
+          } />
+          <Route path='/chat' element={
+            <ProtectedRoute token={token}>
+              <PatientChat />
+            </ProtectedRoute>
+          } />
+          <Route path='/unauthorized' element={<Unauthorized />} />
         </Routes>
         {!hideFooter && <Footer />}
         <Chatbot />
