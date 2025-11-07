@@ -16,10 +16,28 @@ const addDoctor = async (req, res) => {
             return res.json({ success: false, message: "Please fill all the fields" });
         }
         if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" });
+            return res.json({ success: false, message: "Vui lòng nhập email hợp lệ" });
         }
         if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" });
+            return res.json({ success: false, message: "Vui lòng nhập mật khẩu mạnh" });
+        }
+          if (imageFile) {
+            const allowedTypes = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/gif",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(imageFile.mimetype)) {
+                return res.json({ success: false, message: "Không chấp nhận loại tệp này" });
+            }
+
+            // Giới hạn dung lượng 5MB
+            if (imageFile.size > 5 * 1024 * 1024) {
+                return res.json({ success: false, message: "File quá lớn (tối đa 5MB)" });
+            }
         }
         // hashing password
         const salt = await bcrypt.genSalt(10);

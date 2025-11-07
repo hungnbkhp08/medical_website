@@ -9,6 +9,43 @@ const MyProfile = () => {
   const [isEdit, setIsEdit] = useState(false)
   const [image, setImage] = useState(false)
 
+  const validateImage = (file) => {
+    // Kiểm tra có file không
+    if (!file) {
+      toast.error('Vui lòng chọn file');
+      return false;
+    }
+
+    // Kiểm tra loại file
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)');
+      return false;
+    }
+
+    // Kiểm tra kích thước file (ví dụ: tối đa 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error('Kích thước ảnh không được vượt quá 5MB');
+      return false;
+    }
+
+    return true;
+  };
+
+  // Xử lý khi chọn file
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file && validateImage(file)) {
+      setImage(file);
+    } else {
+      // Reset input nếu file không hợp lệ
+      e.target.value = '';
+      setImage(false);
+    }
+  };
+
   const updateProfile = async () => {
     try {
       const formData = new FormData()
@@ -41,7 +78,7 @@ const MyProfile = () => {
               <img className='w-36 rounded opacity-75' src={image ? URL.createObjectURL(image) : userData.image} alt="" />
               <img className='w-10 absolute bottom-12 right-12' src={image ? '' : assets.upload_icon} alt="" />
             </div>
-            <input onChange={(e) => setImage(e.target.files[0])} type="file" id="image" hidden />
+            <input onChange={handleImageChange} accept="image/png, image/jpeg, image/jpg, image/gif, image/webp" type="file" id="image" hidden />
           </label>
           : <img className='w-36 rounded' src={userData.image} alt="" />
       }

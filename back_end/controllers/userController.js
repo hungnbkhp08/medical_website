@@ -11,34 +11,55 @@ import {generateMedicalReport} from '../utils/createPdf.js';
 import resultModel from "../models/resultModel.js";
 import walletModel from "../models/walletModel.js";
 const registerUser = async (req, res) => {
-    try {
-        const { name, email, password } = req.body
-        if (!name || !email || !password) {
-            return res.json({ success: false, message: "Please fill all the fields" });
-        }
-        if (!validator.isEmail(email)) {
-            return res.json({ success: false, message: "Please enter a valid email" });
-        }
-        if (password.length < 8) {
-            return res.json({ success: false, message: "Please enter a strong password" });
-        }
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        const userData = {
-            name,
-            email,
-            password: hashedPassword,
-        }
-        const newUser = new userModel(userData)
-        const user = await newUser.save();
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
-        res.json({ success: true, token, message: 'Register Successfully' })
+  try {
+    const { name, email, password } = req.body;
+
+    //  Kiểm tra dữ liệu đầu vào
+    if (!name || !email || !password) {
+      return res.json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
     }
-    catch (error) {
-        console.error(error);
-        res.json({ success: false, message: error.message });
+
+    if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Vui lòng nhập email hợp lệ" });
     }
-}
+
+    //  Kiểm tra độ mạnh mật khẩu
+    const strongPasswordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+
+    if (!strongPasswordRegex.test(password)) {
+      return res.json({
+        success: false,
+        message:
+          "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt",
+      });
+    }
+
+    // Kiểm tra email trùng
+    const existingUser = await userModel.findOne({ email });
+    if (existingUser) {
+      return res.json({ success: false, message: "Người dùng đã tồn tại" });
+    }
+
+    //  Hash mật khẩu
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    //  Lưu user mới
+    const newUser = new userModel({
+      name,
+      email,
+      password: hashedPassword,
+    });
+
+    await newUser.save();
+
+    res.json({ success: true, message: "Đăng ký thành công" });
+  } catch (error) {
+    console.error("Register error:", error);
+    res.json({ success: false, message: "Lỗi máy chủ: " + error.message });
+  }
+};
 const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body
@@ -76,7 +97,25 @@ const updateProfile = async (req, res) => {
         const { userId, name, phone, address, dob, gender } = req.body
         const imageFile = req.file;
         if (!name || !phone || !address || !gender) {
-            return res.json({ success: false, message: "Data Missing" });
+            return res.json({ success: false, message: "Dữ liệu bị thiếu" });
+        }
+         if (imageFile) {
+            const allowedTypes = [
+                "image/jpeg",
+                "image/jpg",
+                "image/png",
+                "image/gif",
+                "image/webp"
+            ];
+
+            if (!allowedTypes.includes(imageFile.mimetype)) {
+                return res.json({ success: false, message: "Không chấp nhận loại tệp này" });
+            }
+
+            // Giới hạn dung lượng 5MB
+            if (imageFile.size > 5 * 1024 * 1024) {
+                return res.json({ success: false, message: "File quá lớn (tối đa 5MB)" });
+            }
         }
         await userModel.findByIdAndUpdate(userId, { name, phone, address: JSON.parse(address), dob, gender })
         if (imageFile) {

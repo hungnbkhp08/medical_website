@@ -18,6 +18,43 @@ const AddDoctor = () => {
   const [about, setAbout] = useState('');
   const[degree, setDegree] = useState('');
   const {backendUrl,aToken}= useContext(AdminContext)
+  //  Hàm kiểm tra tính hợp lệ của ảnh
+    const validateImage = (file) => {
+    // Kiểm tra có file không
+    if (!file) {
+      toast.error('Vui lòng chọn file');
+      return false;
+    }
+
+    // Kiểm tra loại file
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WEBP)');
+      return false;
+    }
+
+    // Kiểm tra kích thước file 
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error('Kích thước ảnh không được vượt quá 5MB');
+      return false;
+    }
+
+    return true;
+  };
+
+  //  Xử lý khi chọn file
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    
+    if (file && validateImage(file)) {
+      setImage(file);
+    } else {
+      // Reset input nếu file không hợp lệ
+      e.target.value = '';
+      setImage(false);
+    }
+  };
   const onSubmitHandle = async (e) => {
     e.preventDefault();
     try{
@@ -70,7 +107,7 @@ const AddDoctor = () => {
           <label htmlFor="doc-img">
             <img className='w-16 bg-gray-100 rounded-full cursor-pointer' src={docImg?URL.createObjectURL(docImg):assets.upload_area} alt="" />
           </label>
-          <input onChange={(e)=>setDocImg(e.target.files[0])} type="file" id="doc-img" hidden />
+          <input onChange={handleImageChange} accept="image/*" type="file" id="doc-img" hidden />
           <p>Tải lên ảnh <br /> bác sĩ</p>
         </div>
         <div className='flex flex-col lg:flex-row gap-10 text-gray-600'>
