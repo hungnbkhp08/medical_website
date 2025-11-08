@@ -17,6 +17,7 @@ import PatientChat from './pages/PatientChat';
 import Unauthorized from './pages/Unauthorized';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AppContext } from './context/AppContext';
+import UnlockAccount from './pages/UnlockAccount';
 
 // import provider của Google
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -39,6 +40,7 @@ const App = () => {
           <Route path='/login' element={<Login />} />
           <Route path='/about' element={<About />} />
           <Route path='/contact' element={<Contact />} />
+          <Route path='/unlock-account' element={<UnlockAccount />} />
           <Route path='/my-profile' element={
             <ProtectedRoute token={token}>
               <MyProfile />
