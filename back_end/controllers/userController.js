@@ -159,7 +159,11 @@ const loginUser = async (req, res) => {
     }
     if (isMatch) {
       const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
-      res.json({ success: true, token })
+      user.countFailed = 0;
+      user.isLocked = false;
+      user.unlockToken = null;
+      await user.save();
+      return res.json({ success: true, token });
     }
     else {
       return res.json({ success: false, message: "Invalid creedentials" });

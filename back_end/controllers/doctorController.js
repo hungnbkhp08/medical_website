@@ -2,7 +2,7 @@ import doctorModel from "../models/doctorModel.js";
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import appointmentModel from "../models/appointmentModel.js";
-import { sendMail,sendMailWithReport } from '../utils/sendMail.js';
+import { sendMail, sendMailWithReport } from '../utils/sendMail.js';
 import userModel from "../models/userModel.js"
 import reviewModel from "../models/reviewModel.js";
 import resultModel from "../models/resultModel.js";
@@ -33,15 +33,105 @@ const getListDoctor = async (req, res) => {
 const loginDoctor = async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        const doctor = await doctorModel.findOne({ email });
+        const doctor = await doctorModel.findOne({ email }).select("+isLocked +countFailed +unlockToken");
         if (!doctor) {
             return res.json({ success: false, message: 'Invalid credentials' });
         }
+        if (doctor.isLocked) {
+            return res.json({ success: false, message: "Tài khoản của bạn đã bị khóa. Vui lòng kiểm tra email để mở khóa." });
+        }
         const isMatch = await bcrypt.compare(password, doctor.password);
+        if (!isMatch) {
+            doctor.countFailed += 1;
+            if (doctor.countFailed >= 5) {
+                doctor.isLocked = true;
+                const unlockToken = jwt.sign({ id: doctor._id, purpose: "unlock_only" }, process.env.JWT_SECRET);
+                doctor.unlockToken = unlockToken;
+
+                //  Tạo link mở khóa
+                const unlockUrl = `${process.env.FRONTEND_URL_ADMIN}/unlock-account?dtoken=${unlockToken}`;
+
+                // Gửi email với link mở khóa
+                await sendMail(
+                    doctor.email,
+                    'Tài khoản của bạn đã bị khóa',
+                    null,
+                    `
+                                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+                                            <h1 style="color: white; margin: 0;"> Tài khoản bị khóa</h1>
+                                        </div>
+                                        
+                                        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
+                                            <p style="color: #333; font-size: 16px; line-height: 1.6;">
+                                                Xin chào <strong>${doctor.name}</strong>,
+                                            </p>
+                                            
+                                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+                                                <p style="color: #856404; margin: 0; font-size: 14px;">
+                                                     Tài khoản của bạn đã bị khóa do nhập sai mật khẩu <strong>quá 5 lần</strong>.
+                                                </p>
+                                            </div>
+                                            
+                                            <p style="color: #555; font-size: 15px; line-height: 1.6;">
+                                                Để mở khóa tài khoản, vui lòng nhấp vào nút bên dưới:
+                                            </p>
+                                            
+                                            <div style="text-align: center; margin: 30px 0;">
+                                                <a href="${unlockUrl}" 
+                                                   style="display: inline-block; 
+                                                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                                          color: white; 
+                                                          padding: 15px 40px; 
+                                                          text-decoration: none; 
+                                                          border-radius: 50px; 
+                                                          font-weight: bold; 
+                                                          font-size: 16px;
+                                                          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                                                     Mở khóa tài khoản
+                                                </a>
+                                            </div>
+                                            
+                                            <p style="color: #888; font-size: 13px; text-align: center; margin: 20px 0;">
+                                                Hoặc copy link sau vào trình duyệt:
+                                            </p>
+                                            <div style="background: #e9ecef; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px; color: #495057; text-align: center;">
+                                                ${unlockUrl}
+                                            </div>
+                                            
+                                            
+                                            <p style="color: #555; font-size: 14px; line-height: 1.6;">
+                                                Nếu bạn không thực hiện hành động này, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức để bảo mật tài khoản.
+                                            </p>
+                                            
+                                            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                                                <p style="color: #6c757d; font-size: 13px; margin: 0;">
+                                                    Trân trọng,<br/>
+                                                    <strong>HealthCare Booking Team</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f1f3f5; border-radius: 5px;">
+                                            <p style="color: #6c757d; font-size: 12px; margin: 0;">
+                                                © 2025 HealthCare Booking. All rights reserved.<br/>
+                                                Đây là email tự động, vui lòng không trả lời email này.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    `
+                );
+            }
+            await doctor.save();
+            return res.json({ success: false, message: "Thông tin đăng nhập không hợp lệ" });
+        }
         if (isMatch) {
             const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET)
-            res.json({ success: true, token });
+            doctor.countFailed = 0;
+            doctor.isLocked = false;
+            doctor.unlockToken = null;
+            await doctor.save();
+            return  res.json({ success: true, token });
         }
         else {
             return res.json({ success: false, message: 'Invalid credentials' });
@@ -50,6 +140,48 @@ const loginDoctor = async (req, res) => {
     } catch (error) {
         console.log(error);
         res.json({ success: false, message: error.message });
+    }
+};
+const unlockAccount = async (req, res) => {
+    try {
+        const { dtoken } = req.body;
+
+        const decoded = jwt.verify(dtoken, process.env.JWT_SECRET);
+
+        // Chặn token nếu không phải loại unlock
+        if (decoded.purpose !== "unlock_only") {
+            return res.json({
+                success: false,
+                message: "Token không hợp lệ hoặc không có quyền mở khóa."
+            });
+        }
+
+        const doctor = await doctorModel.findById(decoded.id)
+            .select("+isLocked +countFailed +unlockToken");
+
+        if (!doctor || doctor.unlockToken !== dtoken) {
+            return res.json({
+                success: false,
+                message: "Token không hợp lệ."
+            });
+        }
+
+        // Mở khóa
+        doctor.isLocked = false;
+        doctor.countFailed = 0;
+        doctor.unlockToken = null;
+        await doctor.save();
+
+        return res.json({
+            success: true,
+            message: "Tài khoản đã được mở khóa."
+        });
+
+    } catch (err) {
+        return res.json({
+            success: false,
+            message: "Token hết hạn hoặc không hợp lệ."
+        });
     }
 };
 // API to get doctor appointments
@@ -66,12 +198,12 @@ const getDoctorAppointments = async (req, res) => {
 //API to mark appointment as completed
 const markAppointmentCompleted = async (req, res) => {
     try {
-        const { docId, appointmentId,diagnosis,prescription } = req.body;
+        const { docId, appointmentId, diagnosis, prescription } = req.body;
         const appointment = await appointmentModel.findById(appointmentId);
         if (appointment && appointment.docId === docId) {
             appointment.isCompleted = true;
             await appointment.save();
-            const result ={
+            const result = {
                 appointmentId,
                 diagnosis,
                 prescription,
@@ -80,13 +212,13 @@ const markAppointmentCompleted = async (req, res) => {
             const newResult = new resultModel(result);
             await newResult.save();
             // Update user wallet balance
-            const wallet= await walletModel.findOne({docId: docId});
-            if(appointment.payment){
-                wallet.balance += appointment.amount*0.9; 
+            const wallet = await walletModel.findOne({ docId: docId });
+            if (appointment.payment) {
+                wallet.balance += appointment.amount * 0.9;
                 await wallet.save();
             }
-            else{
-                wallet.balance = wallet.balance- appointment.amount*0.1; 
+            else {
+                wallet.balance = wallet.balance - appointment.amount * 0.1;
                 await wallet.save();
             }
             // Send email to user about appointment completion
@@ -95,7 +227,7 @@ const markAppointmentCompleted = async (req, res) => {
                 userData.email,
                 diagnosis,
                 prescription
-              );    
+            );
             res.json({ success: true, message: "Appointment completed" });
         }
         else {
@@ -136,7 +268,7 @@ const doctorDashboard = async (req, res) => {
     try {
         const { docId } = req.body;
         const appointments = await appointmentModel.find({ docId });
-        const doctor= await doctorModel.findById(docId).select('-password -email');
+        const doctor = await doctorModel.findById(docId).select('-password -email');
         let earnings = 0;
         appointments.map((item) => {
             if (item.isCompleted || item.payment) {
@@ -156,7 +288,7 @@ const doctorDashboard = async (req, res) => {
             earnings: earnings * 0.9,
             patients: patients.length,
             lastestAppointments: appointments.reverse().slice(0, 5),
-            listAppointments:appointments,
+            listAppointments: appointments,
             wallet,
             fees: doctor.fees
         }
@@ -236,5 +368,7 @@ const getDoctorAvailability = async (req, res) => {
     }
 };
 
-export { changeAvailablity, getListDoctor, loginDoctor, getDoctorAppointments, markAppointmentCompleted, 
-    cancelAppointment, doctorDashboard, getDoctorProfile, updateDoctorProfile, getDoctorAvailability }
+export {
+    changeAvailablity, getListDoctor, loginDoctor, getDoctorAppointments, markAppointmentCompleted,
+    cancelAppointment, doctorDashboard, getDoctorProfile, updateDoctorProfile, getDoctorAvailability,unlockAccount
+}
