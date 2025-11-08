@@ -69,7 +69,7 @@ const App = () => {
           <Route path='/unauthorized' element={<Unauthorized />} />
         </Routes>
         {!hideFooter && <Footer />}
-        <Chatbot />
+        {token && <Chatbot />}
       </div>
     </GoogleOAuthProvider>
   );
