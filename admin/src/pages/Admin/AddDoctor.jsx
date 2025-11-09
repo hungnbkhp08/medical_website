@@ -18,6 +18,7 @@ const AddDoctor = () => {
   const [about, setAbout] = useState('');
   const[degree, setDegree] = useState('');
   const {backendUrl,aToken}= useContext(AdminContext)
+  const [ setImage] = useState(false)
   //  Hàm kiểm tra tính hợp lệ của ảnh
     const validateImage = (file) => {
     // Kiểm tra có file không

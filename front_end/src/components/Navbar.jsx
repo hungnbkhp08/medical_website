@@ -6,14 +6,15 @@ const Navbar = () => {
     const navigate = useNavigate();
     const { token, setToken, userData } = useContext(AppContext)
     const [showMenu, setShowMenu] = useState(false)
+    const [showMobileUserMenu, setShowMobileUserMenu] = useState(false)
     const logout = () => {
         setToken(false)
         localStorage.removeItem("token")
     }
 
     return (
-        <div className='flex item-center justify-between text-sm py-4 mb-5 border-b border-b-gray-400'>
-            <img onClick={() => navigate('/')} className='w-44 cursor-pointer' src={assets.logo} alt="" />
+        <div className='flex items-center justify-between text-sm py-4 mb-5 border-b border-b-gray-400 px-4 sm:px-6 lg:px-8'>
+            <img onClick={() => navigate('/')} className='w-32 sm:w-40 md:w-44 cursor-pointer' src={assets.logo} alt="" />
             <ul className='hidden md:flex items-start gap-5 font-medium'>
                 <NavLink to='/'>
                     <li className='py-1'>TRANG CHỦ</li>
@@ -39,38 +40,56 @@ const Navbar = () => {
                     <hr className='border-none outline-none h-0.5 bg-[#5f6FFF] w-3/5 m-auto hidden' />
                 </NavLink>
             </ul>
-            <div className='flex item-center gap-4'>
+            <div className='flex items-center gap-2 sm:gap-4'>
                 {
                     token && userData//set avatar
-                        ? <div className='flex item-center gap-2 cursor-pointer group relative'>
+                        ? <div className='flex items-center gap-2 cursor-pointer group relative'>
                             <img className='w-8 rounded-full' src={userData.image} alt="" />
                             <img className='w-2.5' src={assets.dropdown_icon} alt="" />
                             <div className='absolute top-0 right-0 pt-14 text-base font-medium text-gray-600 z-20 hidden group-hover:block'>
-                                <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4'>
+                                <div className='min-w-48 bg-stone-100 rounded flex flex-col gap-4 p-4 shadow-lg'>
                                     <p onClick={() => navigate('/my-profile')} className='hover:text-black cursor-pointer'>Thông tin </p>
                                     <p onClick={() => navigate('/my-appointments')} className='hover:text-black cursor-pointer'>Lịch khám</p>
                                     <p onClick={logout} className='hover:text-black cursor-pointer'>Đăng xuất</p>
                                 </div>
                             </div>
                         </div>
-                        : <button onClick={() => navigate('/login')} className='bg-[#5f6FFF] text-white px-8 py-3 rounded-full font-light '>Tạo tài khoản</button>
+                        : <button onClick={() => navigate('/login')} className='bg-[#5f6FFF] text-white px-4 sm:px-6 md:px-8 py-2 sm:py-3 rounded-full font-light text-xs sm:text-sm'>Tạo tài khoản</button>
                 }
-                <img onClick={() => setShowMenu(true)} className='w-6 md:hidden' src={assets.menu_icon} alt="" />
+                <img onClick={() => setShowMenu(true)} className='w-6 md:hidden cursor-pointer' src={assets.menu_icon} alt="" />
                 {/* Mobile Menu */}
-                <div className={`${showMenu ? 'fixed w-full' : 'h-0 w-0'} md:hidden right-0 top-0 bottom-0 z-20 overflow-hidden bg-white transition-all`}>
-                    <div className='flex items-center justify-between px-5 py-6'>
+                <div className={`${showMenu ? 'fixed w-full' : 'h-0 w-0'} md:hidden right-0 top-0 bottom-0 z-50 overflow-hidden bg-white transition-all`}>
+                    <div className='flex items-center justify-between px-5 py-6 border-b border-gray-200'>
                         <img className='w-36' src={assets.logo} alt="" />
-                        <img className='w-7' onClick={() => setShowMenu(false)} src={assets.cross_icon} alt="" />
+                        <img className='w-7 cursor-pointer' onClick={() => setShowMenu(false)} src={assets.cross_icon} alt="" />
                     </div>
                     <ul className='flex flex-col items-center gap-2 mt-5 px-5 text-lg font-medium'>
-                        <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded-full inline-block'>TRANG CHỦ</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/doctors'><p className='px-4 py-2 rounded-full inline-block'>BÁC SỸ</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/about'><p className='px-4 py-2 rounded-full inline-block'>VỀ CHÚNG TÔI</p></NavLink>
-                        <NavLink onClick={() => setShowMenu(false)} to='/contact'><p className='px-4 py-2 rounded-full inline-block'>LIÊN HỆ</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/'><p className='px-4 py-2 rounded-full inline-block hover:bg-gray-100'>TRANG CHỦ</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/doctors'><p className='px-4 py-2 rounded-full inline-block hover:bg-gray-100'>BÁC SỸ</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/about'><p className='px-4 py-2 rounded-full inline-block hover:bg-gray-100'>VỀ CHÚNG TÔI</p></NavLink>
+                        <NavLink onClick={() => setShowMenu(false)} to='/contact'><p className='px-4 py-2 rounded-full inline-block hover:bg-gray-100'>LIÊN HỆ</p></NavLink>
                         {
                             token &&
-                            <NavLink onClick={() => setShowMenu(false)} to='/chat'><p className='px-4 py-2 rounded-full inline-block'>TIN NHẮN</p></NavLink>
+                            <NavLink onClick={() => setShowMenu(false)} to='/chat'><p className='px-4 py-2 rounded-full inline-block hover:bg-gray-100'>TIN NHẮN</p></NavLink>
                         }
+                        {/* Mobile user menu */}
+                        {token && userData ? (
+                            <>
+                                <div className='w-full border-t border-gray-200 my-2'></div>
+                                <div className='flex flex-col items-center gap-2 w-full'>
+                                    <img className='w-16 h-16 rounded-full mb-2' src={userData.image} alt="" />
+                                    <p className='font-semibold text-gray-700'>{userData.name}</p>
+                                    <button onClick={() => { navigate('/my-profile'); setShowMenu(false); }} className='w-full max-w-xs px-4 py-2 rounded-full hover:bg-gray-100'>Thông tin</button>
+                                    <button onClick={() => { navigate('/my-appointments'); setShowMenu(false); }} className='w-full max-w-xs px-4 py-2 rounded-full hover:bg-gray-100'>Lịch khám</button>
+                                    <button onClick={() => { logout(); setShowMenu(false); }} className='w-full max-w-xs px-4 py-2 rounded-full hover:bg-gray-100 text-red-600'>Đăng xuất</button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className='w-full border-t border-gray-200 my-2'></div>
+                                <button onClick={() => { navigate('/login'); setShowMenu(false); }} className='bg-[#5f6FFF] text-white px-8 py-3 rounded-full font-light w-full max-w-xs'>Tạo tài khoản</button>
+                            </>
+                        )}
                     </ul>
                 </div>
             </div>
