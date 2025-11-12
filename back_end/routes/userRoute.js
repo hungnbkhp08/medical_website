@@ -1,6 +1,6 @@
 import express from 'express';
 import { bookAppointment, cancelAppointment, getListUser, getProfile, listAppointment,managerPatient,
-    loginUser, registerUser, updatePaidAppointment, updateProfile, googleLoginUser,downloadResult,googleSignUpUser, unlockAccount} from '../controllers/userController.js';
+    loginUser, registerUser, updatePaidAppointment, updateProfile, googleLoginUser,downloadResult,googleSignUpUser, unlockAccount, changePassword} from '../controllers/userController.js';
 import authUser from '../middlewares/authUser.js';
 import upload from '../middlewares/multer.js';
 const userRouter=express.Router();
@@ -18,4 +18,5 @@ userRouter.post("/google-login", googleLoginUser);
 userRouter.post("/google-signup", googleSignUpUser);
 userRouter.post("/manager-patient", authUser, managerPatient);
 userRouter.post("/unlock-account", unlockAccount);
+userRouter.post("/change-password", authUser, changePassword);
 export default userRouter

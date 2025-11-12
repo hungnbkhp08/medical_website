@@ -79,10 +79,8 @@ const loginUser = async (req, res) => {
         // Tạo mã token mở khóa
         const unlockToken = jwt.sign({ id: user._id, purpose: "unlock_only" }, process.env.JWT_SECRET);
         user.unlockToken = unlockToken;
-
         //  Tạo link mở khóa
         const unlockUrl = `${process.env.FRONTEND_URL}/unlock-account?token=${unlockToken}`;
-
         // Gửi email với link mở khóa
         await sendMail(
           user.email,
@@ -597,8 +595,57 @@ const managerPatient = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 }
+const changePassword = async (req, res) => {
+  try {
+    const { userId, currentPassword, newPassword, confirmPassword } = req.body;
+    const user = await userModel.findById(userId).select('+password');
+    if (!user) {
+      return res.json({ success: false, message: "User không tồn tại" });
+      }
+      if (newPassword !== confirmPassword) {
+      return res.json({ success: false, message: "Mật khẩu mới và xác nhận mật khẩu không khớp" });
+      }
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.json({ success: false, message: "Mật khẩu cũ không đúng" });
+      }
+      // Kiểm tra độ mạnh mật khẩu mới
+      const strongPasswordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+      if (!strongPasswordRegex.test(newPassword)) {
+        return res.json({
+          success: false,
+          message:
+            "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt",
+        });
+      }
+      // Hash mật khẩu mới
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(newPassword, salt);
+      user.password = hashedPassword;
+      await user.save();
+      await sendMail(
+        user.email,
+        'Đổi mật khẩu thành công',
+        null,
+        `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+              <h2 style="color: #2d9cdb;">Mật khẩu của bạn đã được thay đổi</h2>
+              <p>Xin chào <strong>${user.name}</strong>,</p>  
+              <p>Mật khẩu tài khoản của bạn đã được thay đổi thành công.</p>
+              <p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức để bảo mật tài khoản.</p>
+              <p style="margin-top: 20px;">Trân trọng,<br/> <em>HealthCare Booking</em></p>
+              </div>
+            `
+      );
+      res.json({ success: true, message: "Đổi mật khẩu thành công" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.json({ success: false, message: "Lỗi máy chủ: " + error.message });
+    }
+  };
 export {
   registerUser, loginUser, getProfile, updateProfile, bookAppointment
   , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser, downloadResult, 
-  googleSignUpUser, managerPatient, unlockAccount
+  googleSignUpUser, managerPatient, unlockAccount, changePassword
 };
