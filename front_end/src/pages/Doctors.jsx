@@ -10,6 +10,7 @@ const Doctors = () => {
   const navigate = useNavigate();
   const [filterDoc, setFilterDoc] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { doctors } = useContext(AppContext);
   const renderStars = (rating) => {
     const stars = []
@@ -30,22 +31,64 @@ const Doctors = () => {
     return stars
   }
 
-  const applyFilter = () => {
-    if (speciality) {
-      // Lọc trực tiếp theo tên chuyên khoa tiếng Việt từ URL
-      setFilterDoc(doctors.filter(doc => doc.speciality === decodeURIComponent(speciality)));
-    } else {
-      setFilterDoc(doctors);
-    }
-  };
-
   useEffect(() => {
-    applyFilter();
-  }, [doctors, speciality]);
+    let filtered = doctors;
+
+    // Lọc theo chuyên khoa
+    if (speciality) {
+      filtered = filtered.filter(doc => doc.speciality === decodeURIComponent(speciality));
+    }
+
+    // Lọc theo tên bác sĩ
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(doc => 
+        doc.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilterDoc(filtered);
+  }, [doctors, speciality, searchQuery]);
 
   return (
     <div>
       <p className='text-gray-600'>Tìm bác sĩ theo chuyên khoa.</p>
+      
+      {/* Search Bar */}
+      <div className='mt-5 mb-5'>
+        <div className='relative max-w-xl'>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm kiếm bác sĩ theo tên..."
+            className='w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5f6FFF] focus:border-transparent transition-all'
+          />
+          <svg 
+            className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400'
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
+            >
+              <svg className='w-5 h-5' fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <p className='text-sm text-gray-500 mt-2'>
+            Tìm thấy <span className='font-semibold text-[#5f6FFF]'>{filterDoc.length}</span> bác sĩ
+          </p>
+        )}
+      </div>
+
       <div className='flex flex-col sm:flex-row items-start gap-5 mt-5'>
         <button
           className={`py-1 px-2 border rounded text-sm transition-all sm:hidden ${showFilter ? 'bg-[#5f6FFF] text-white' : ''}`}
