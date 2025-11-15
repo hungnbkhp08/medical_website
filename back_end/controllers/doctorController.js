@@ -339,6 +339,49 @@ const updateDoctorProfile = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+const changePassword= async (req, res) => {
+  try {
+    const { docId, currentPw, newPw } = req.body;
+    const doctor = await doctorModel.findById(docId).select("+password");
+    if (!doctor) {
+      return res.json({ success: false, message: "Không tìm thấy bác sĩ" });
+    }
+    const isMatch = await bcrypt.compare(currentPw, doctor.password);
+    if (!isMatch) {
+      return res.json({ success: false, message: "Mật khẩu cũ không đúng" });
+    }
+     const strongPasswordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+      if (!strongPasswordRegex.test(newPw)) {
+        return res.json({
+          success: false,
+          message:
+            "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt",
+        });
+      }
+    const hashedPassword = await bcrypt.hash(newPw, 10);
+    doctor.password = hashedPassword;
+    await doctor.save();
+         await sendMail(
+            doctor.email,
+            'Đổi mật khẩu thành công',
+            null,
+            `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                  <h2 style="color: #2d9cdb;">Mật khẩu của bạn đã được thay đổi</h2>
+                  <p>Xin chào <strong>${doctor.name}</strong>,</p>  
+                  <p>Mật khẩu tài khoản của bạn đã được thay đổi thành công.</p>
+                  <p>Nếu bạn không thực hiện thay đổi này, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức để bảo mật tài khoản.</p>
+                  <p style="margin-top: 20px;">Trân trọng,<br/> <em>HealthCare Booking</em></p>
+                  </div>
+                `
+          );
+    res.json({ success: true, message: "Đổi mật khẩu thành công" });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
 const getDoctorAvailability = async (req, res) => {
   try {
     let { slotDate, slotTime } = req.body;
@@ -396,4 +439,5 @@ export {
   updateDoctorProfile,
   getDoctorAvailability,
   unlockAccount,
+  changePassword,
 };
