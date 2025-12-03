@@ -17,6 +17,7 @@ const doctorSchema = new mongoose.Schema({
     isLocked: { type: Boolean, default: false, select: false },
     countFailed: { type: Number, default: 0, select: false },
     unlockToken: { type: String, select: false },
+    lastFailedAt: { type: Date, default: null, select: false },
 }, { minimize: false });
 const doctorModel = mongoose.model.doctor || mongoose.model("doctors", doctorSchema);
 export default doctorModel;

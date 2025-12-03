@@ -8,9 +8,13 @@ const userSchema = new mongoose.Schema({
     gender: { type: String, default: "Not Selected" },
     dob: { type: String, default: "Not Selected" },
     phone: { type: String, default: '0368874207' },
+    isActive: { type: Boolean, default: false },
     isLocked: { type: Boolean, default: false, select: false },
     countFailed: { type: Number, default: 0, select: false },
     unlockToken: { type: String, select: false },
+    lastFailedAt: { type: Date, default: null, select: false },
+    otpActive :{type:String,select :false}, 
+    otpExpire :{type:Date,select :false}
 });
 const userModel = mongoose.model.user || mongoose.model("user", userSchema);
 export default userModel;

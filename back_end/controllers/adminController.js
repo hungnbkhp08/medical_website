@@ -8,6 +8,7 @@ import userModel from "../models/userModel.js";
 import { sendMail } from "../utils/sendMail.js";
 import fs from "fs";
 import path from "path";
+import {validateFile} from "../utils/validateImage.js";
 
 // File lưu trữ trạng thái admin
 const ADMIN_LOCK_FILE = path.join(process.cwd(), "admin_lock.json");
@@ -81,21 +82,10 @@ const addDoctor = async (req, res) => {
       });
     }
     if (imageFile) {
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/gif",
-        "image/webp",
-      ];
-
-      if (!allowedTypes.includes(imageFile.mimetype)) {
-        return res.json({
-          success: false,
-          message: "Không chấp nhận loại tệp này",
-        });
+      const validationResult = await validateFile(imageFile);
+      if (!validationResult.valid) {
+        return res.json({success: false, message: `File không hợp lệ: ${validationResult.reason}`,});
       }
-
       // Giới hạn dung lượng 5MB
       if (imageFile.size > 5 * 1024 * 1024) {
         return res.json({
@@ -149,6 +139,15 @@ const loginAdmin = async (req, res) => {
         locked: true,
       });
     }
+     const now = Date.now();
+    if (adminStatus.lastFailedAt) {
+      const diff = now - new Date(adminStatus.lastFailedAt).getTime(); // ms
+
+      if (diff > 2 * 60 * 1000) {
+        // quá 2 phút → reset số lần sai
+        adminStatus.countFailed = 0;
+      }
+    }
 
     // Kiểm tra thông tin đăng nhập
     if (
@@ -160,6 +159,7 @@ const loginAdmin = async (req, res) => {
         isLocked: false,
         countFailed: 0,
         unlockToken: null,
+        lastFailedAt: null,
       });
 
       const token = jwt.sign(email + password, process.env.JWT_SECRET);
@@ -167,7 +167,7 @@ const loginAdmin = async (req, res) => {
     } else {
       // Sai mật khẩu - Tăng countFailed
       adminStatus.countFailed += 1;
-
+      adminStatus.lastFailedAt = new Date();
       if (adminStatus.countFailed >= 5) {
         // Khóa tài khoản và tạo unlock token
         const unlockToken = jwt.sign(

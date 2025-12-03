@@ -10,6 +10,7 @@ import { OAuth2Client } from "google-auth-library";
 import { generateMedicalReport } from '../utils/createPdf.js';
 import resultModel from "../models/resultModel.js";
 import walletModel from "../models/walletModel.js";
+import {validateFile} from "../utils/validateImage.js";
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -44,12 +45,23 @@ const registerUser = async (req, res) => {
     //  Hash mật khẩu
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // OTP hết hạn sau 10 phút
+        await sendMail(
+          email,
+          'Đăng ký tài khoản của bạn',
+          ` Mã OTP để đăng ký tài khoản của bạn là: ${otp}. Mã này có hiệu lực trong 10 phút.`,
+          `<p>Mã OTP để đăng ký tài khoản của bạn là: <strong>${otp}</strong></p>
+           <p>Mã này có hiệu lực trong 10 phút.</p>`
+        );
 
     //  Lưu user mới
     const newUser = new userModel({
       name,
       email,
       password: hashedPassword,
+      otpActive: otp,
+      otpExpire: otpExpiry
     });
 
     await newUser.save();
@@ -62,116 +74,129 @@ const registerUser = async (req, res) => {
 };
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body
+    const { email, password } = req.body;
     const user = await userModel.findOne({ email })
-      .select("+isLocked +countFailed +unlockToken");
+      .select("+isLocked +countFailed +unlockToken +lastFailedAt +isActive");
+
     if (!user) {
       return res.json({ success: false, message: "User không tồn tại" });
     }
+
     if (user.isLocked) {
-      return res.json({ success: false, message: "Tài khoản của bạn đã bị khóa. Vui lòng kiểm tra email để mở khóa." });
+      return res.json({
+        success: false,
+        message: "Tài khoản của bạn đã bị khóa. Vui lòng kiểm tra email để mở khóa."
+      });
     }
-    const isMatch = await bcrypt.compare(password, user.password)
+
+    // Kiểm tra TIME WINDOW 2 phút
+    const now = Date.now();
+    if (user.lastFailedAt) {
+      const diff = now - new Date(user.lastFailedAt).getTime(); // ms
+
+      if (diff > 2 * 60 * 1000) {
+        // quá 2 phút → reset số lần sai
+        user.countFailed = 0;
+      }
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    // SAI MẬT KHẨU
     if (!isMatch) {
+
       user.countFailed += 1;
+      user.lastFailedAt = new Date();
+
       if (user.countFailed >= 5) {
         user.isLocked = true;
-        // Tạo mã token mở khóa
-        const unlockToken = jwt.sign({ id: user._id, purpose: "unlock_only" }, process.env.JWT_SECRET);
+
+        const unlockToken = jwt.sign(
+          { id: user._id, purpose: "unlock_only" },
+          process.env.JWT_SECRET
+        );
+
         user.unlockToken = unlockToken;
-        //  Tạo link mở khóa
+
         const unlockUrl = `${process.env.FRONTEND_URL}/unlock-account?token=${unlockToken}`;
-        // Gửi email với link mở khóa
+
         await sendMail(
           user.email,
           'Tài khoản của bạn đã bị khóa',
           null,
           `
-                    <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-                            <h1 style="color: white; margin: 0;"> Tài khoản bị khóa</h1>
-                        </div>
-                        
-                        <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
-                            <p style="color: #333; font-size: 16px; line-height: 1.6;">
-                                Xin chào <strong>${user.name}</strong>,
-                            </p>
-                            
-                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-                                <p style="color: #856404; margin: 0; font-size: 14px;">
-                                     Tài khoản của bạn đã bị khóa do nhập sai mật khẩu <strong>quá 5 lần</strong>.
-                                </p>
-                            </div>
-                            
-                            <p style="color: #555; font-size: 15px; line-height: 1.6;">
-                                Để mở khóa tài khoản, vui lòng nhấp vào nút bên dưới:
-                            </p>
-                            
-                            <div style="text-align: center; margin: 30px 0;">
-                                <a href="${unlockUrl}" 
-                                   style="display: inline-block; 
-                                          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                                          color: white; 
-                                          padding: 15px 40px; 
-                                          text-decoration: none; 
-                                          border-radius: 50px; 
-                                          font-weight: bold; 
-                                          font-size: 16px;
-                                          box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
-                                     Mở khóa tài khoản
-                                </a>
-                            </div>
-                            
-                            <p style="color: #888; font-size: 13px; text-align: center; margin: 20px 0;">
-                                Hoặc copy link sau vào trình duyệt:
-                            </p>
-                            <div style="background: #e9ecef; padding: 10px; border-radius: 5px; word-break: break-all; font-size: 12px; color: #495057; text-align: center;">
-                                ${unlockUrl}
-                            </div>
-                            
-                            
-                            <p style="color: #555; font-size: 14px; line-height: 1.6;">
-                                Nếu bạn không thực hiện hành động này, vui lòng liên hệ với bộ phận hỗ trợ của chúng tôi ngay lập tức để bảo mật tài khoản.
-                            </p>
-                            
-                            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-                                <p style="color: #6c757d; font-size: 13px; margin: 0;">
-                                    Trân trọng,<br/>
-                                    <strong>HealthCare Booking Team</strong>
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f1f3f5; border-radius: 5px;">
-                            <p style="color: #6c757d; font-size: 12px; margin: 0;">
-                                © 2025 HealthCare Booking. All rights reserved.<br/>
-                                Đây là email tự động, vui lòng không trả lời email này.
-                            </p>
-                        </div>
-                    </div>
-                    `
+          Tài khoản của bạn đã bị khóa do nhập sai quá 5 lần trong vòng 2 phút.<br>
+          Nhấn vào link để mở khóa: <a href="${unlockUrl}">${unlockUrl}</a>
+          `
         );
       }
+
       await user.save();
       return res.json({ success: false, message: "Thông tin đăng nhập không hợp lệ" });
     }
+
+    // ĐÚNG MẬT KHẨU
     if (isMatch) {
-      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET)
+      if(!user.isActive){
+        return res.json({ success: false, message: "Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ quản trị viên." });
+      }
+      const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
       user.countFailed = 0;
       user.isLocked = false;
       user.unlockToken = null;
+      user.lastFailedAt = null;
+
       await user.save();
+
       return res.json({ success: true, token });
     }
-    else {
-      return res.json({ success: false, message: "Invalid creedentials" });
-    }
-  }
-  catch (error) {
+
+  } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
   }
-}
+};
+const verifyLoginOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    
+    if(!email || !otp ){
+      return res.json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+    }
+    
+    const user = await userModel.findOne({ email }).select('+otpActive + otpExpire');
+    
+    if (!user) {
+      return res.json({ success: false, message: "User không tồn tại" });
+    }
+    
+    // Kiểm tra OTP có hợp lệ không
+    if(!user.otpActive || !user.otpExpire){
+      return res.json({ success: false, message: "Không tìm thấy mã OTP. Vui lòng thử đăng nhập lại." });
+    }
+    
+    // Kiểm tra OTP hết hạn
+    if(new Date() > user.otpExpire){
+      return res.json({ success: false, message: "Mã OTP đã hết hạn. Vui lòng thử đăng nhập lại." });
+    }
+    
+    // Kiểm tra OTP đúng không
+    if(user.otpActive !== otp){
+      return res.json({ success: false, message: "Mã OTP không chính xác" });
+    }
+
+    user.isActive = true;
+    user.otpActive = null;
+    user.otpExpire = null;
+    await user.save();
+    res.json({ success: true, message: "Xác thực OTP thành công. Tài khoản đã được kích hoạt." });
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 const unlockAccount = async (req, res) => {
     try {
         const { token } = req.body;
@@ -233,18 +258,11 @@ const updateProfile = async (req, res) => {
       return res.json({ success: false, message: "Dữ liệu bị thiếu" });
     }
     if (imageFile) {
-      const allowedTypes = [
-        "image/jpeg",
-        "image/jpg",
-        "image/png",
-        "image/gif",
-        "image/webp"
-      ];
-
-      if (!allowedTypes.includes(imageFile.mimetype)) {
-        return res.json({ success: false, message: "Không chấp nhận loại tệp này" });
+      //  Validate file image
+      const validationResult = await validateFile(imageFile);
+      if (!validationResult.valid) {  
+        return res.json({ success: false, message: `File không hợp lệ: ${validationResult.reason}` });
       }
-
       // Giới hạn dung lượng 5MB
       if (imageFile.size > 5 * 1024 * 1024) {
         return res.json({ success: false, message: "File quá lớn (tối đa 5MB)" });
@@ -431,6 +449,15 @@ const updatePaidAppointment = async (req, res) => {
     return res.json({ success: true, message: 'Appointment payment successfully' });
   }
   catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+}
+const logout=async (req, res) => {
+  try {
+    // For JWT, logout is typically handled on the client side by deleting the token.
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
   }
@@ -647,5 +674,5 @@ const changePassword = async (req, res) => {
 export {
   registerUser, loginUser, getProfile, updateProfile, bookAppointment
   , listAppointment, cancelAppointment, updatePaidAppointment, getListUser, googleLoginUser, downloadResult, 
-  googleSignUpUser, managerPatient, unlockAccount, changePassword
+  googleSignUpUser, managerPatient, unlockAccount, changePassword,verifyLoginOtp,logout,
 };

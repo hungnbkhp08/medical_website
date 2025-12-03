@@ -49,9 +49,19 @@ const loginDoctor = async (req, res) => {
           "Tài khoản của bạn đã bị khóa. Vui lòng kiểm tra email để mở khóa.",
       });
     }
+    const now = Date.now();
+    if (doctor.lastFailedAt) {
+      const diff = now - new Date(doctor.lastFailedAt).getTime(); // ms
+
+      if (diff > 2 * 60 * 1000) {
+        // quá 2 phút → reset số lần sai
+        doctor.countFailed = 0;
+      }
+    }
     const isMatch = await bcrypt.compare(password, doctor.password);
     if (!isMatch) {
       doctor.countFailed += 1;
+      doctor.lastFailedAt = new Date();
       if (doctor.countFailed >= 5) {
         doctor.isLocked = true;
         const unlockToken = jwt.sign(
@@ -66,7 +76,7 @@ const loginDoctor = async (req, res) => {
         // Gửi email với link mở khóa
         await sendMail(
           doctor.email,
-          "Tài khoản của bạn đã bị khóa",
+          "Tài khoản của bạn đã bị khóa do nhập sai quá 5 lần trong vòng 2 phút",
           null,
           `
                                     <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
