@@ -15,6 +15,7 @@ import chatSocket from './sockets/chatSocket.js';
 import chatRouter from './routes/chatRoute.js';
 import reviewRoute from './routes/reviewRoute.js';
 import walletRoute from './routes/walletRoute.js';
+import chatbotRoute from './routes/chatbotRoute.js';
 const app = express();
 const port = process.env.PORT || 4000;
 
@@ -31,6 +32,7 @@ app.use('/api/payment', paymentRoute);
 app.use('/api/message', chatRouter); 
 app.use('/api/review', reviewRoute);
 app.use('/api/wallet', walletRoute);
+app.use('/api/chatbot', chatbotRoute);
 
 app.get('/', (req, res) => {
   res.send('API WORKING');
