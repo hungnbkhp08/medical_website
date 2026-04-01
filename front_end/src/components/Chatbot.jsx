@@ -11,11 +11,11 @@ const Chatbot = () => {
         <div className="relative w-96 h-[600px] bg-white rounded-xl shadow-xl overflow-hidden">
           {/* Iframe Dify */}
           <iframe
-              src="https://udify.app/chatbot/pJ4jFRAbi6eeSASC"
-              style={{ border: 'none', width: '100%', height: '100%' }}
-              frameborder="0"
-              allow="microphone">
-            </iframe>
+            src="https://udify.app/chatbot/vHWtjO6kZe68PUG3"
+            style={{ border: 'none', width: '100%', height: '100%' }}
+            frameborder="0"
+            allow="microphone">
+          </iframe>
           {/* Nút đóng ở dưới khung trắng */}
           <button
             onClick={() => setIsOpen(false)}

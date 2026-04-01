@@ -7,6 +7,7 @@ import userModel from "../models/userModel.js";
 import reviewModel from "../models/reviewModel.js";
 import resultModel from "../models/resultModel.js";
 import walletModel from "../models/walletModel.js";
+import historyWalletModel from "../models/historyWalletModel.js";
 const changeAvailablity = async (req, res) => {
   try {
     const { docId } = req.body;
@@ -236,11 +237,17 @@ const markAppointmentCompleted = async (req, res) => {
       await newResult.save();
       // Update user wallet balance
       const wallet = await walletModel.findOne({ docId: docId });
+      const walletHistory = new historyWalletModel();
+      walletHistory.walletId = wallet._id;
       if (appointment.payment) {
         wallet.balance += appointment.amount * 0.9;
+        walletHistory.amount = appointment.amount * 0.9;
+        await walletHistory.save();
         await wallet.save();
       } else {
         wallet.balance = wallet.balance - appointment.amount * 0.1;
+        walletHistory.amount = -appointment.amount * 0.1;
+        await walletHistory.save();
         await wallet.save();
       }
       // Send email to user about appointment completion
@@ -425,17 +432,77 @@ const getDoctorAvailability = async (req, res) => {
       })
       .select("name speciality fees");
 
-    console.log(availableDoctors.length);
+      const result = availableDoctors.map((item) => {
+      return {
+        ...item.toObject(),
+        url: process.env.FRONTEND_URL + `/appointment/${item._id}`
+      };
+    });
 
     res.json({
       success: true,
-      availableDoctors,
+      availableDoctors:result,
     });
   } catch (error) {
     console.error(error);
     res.json({ success: false, message: error.message });
   }
 };
+const searchDoctor = async (req, res) => {
+  try {
+    const { doctor_name } = req.body;
+
+    // Hàm xóa dấu tiếng Việt
+    const removeVietnameseTones = (str) => {
+      return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d")
+        .replace(/Đ/g, "D");
+    };
+
+    if (!doctor_name || doctor_name.trim() === "") {
+      return res.json({ success: true, doctor: [] });
+    }
+
+    const keyword = removeVietnameseTones(doctor_name.toLowerCase().trim());
+
+    const doctors = await doctorModel.find().select(["-password", "-email","-image","-slots_booked"]);
+
+    const filtered = doctors.filter((d) => {
+      const nameNormalized = removeVietnameseTones(d.name.toLowerCase());
+      return nameNormalized.includes(keyword);
+    });
+     const result = filtered.map((item) => {
+      return {
+        ...item.toObject(),
+        url: `/appointment/${item._id}`
+      };
+    });
+    res.json({ success: true, doctors: result });
+
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+const searchDoctorBySpeciality =  async (req, res) => {
+  try {
+    const {speciality}= req.body;
+    const doctors= await doctorModel.find({speciality}).select(["-password", "-email","-image","-slots_booked"]);
+    const result = doctors.map((item) => {
+      return {
+        ...item.toObject(),
+        url: `/appointment/${item._id}`
+      };
+    });
+    res.json({ success: true, doctors: result});
+  } catch (error) {
+    console.error(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 
 export {
   changeAvailablity,
@@ -450,4 +517,6 @@ export {
   getDoctorAvailability,
   unlockAccount,
   changePassword,
+  searchDoctor,
+  searchDoctorBySpeciality
 };

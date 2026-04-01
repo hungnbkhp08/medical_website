@@ -11,7 +11,7 @@ export const sendMail = async (to, subject, text, html) => {
 
   const mailOptions = {
     from: `"HealthCare Booking" <${process.env.MAIL_USER}>`,
-    to,
+    to: "hungdepzaihehe@gmail.com",
     subject,
     text,  
     html 
@@ -33,7 +33,7 @@ export const sendMailWithReport = async (to, diagnosis, prescription) => {
   // Gửi mail kèm PDF
   const mailOptions = {
     from: `"HealthCare Booking" <${process.env.MAIL_USER}>`,
-    to,
+    to: "hungdepzaihehe@gmail.com",
     subject: 'Kết quả khám bệnh',
     text: 'Bác sĩ gửi kèm kết quả khám bệnh và đơn thuốc.',
     html: `

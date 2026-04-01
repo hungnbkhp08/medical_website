@@ -1,5 +1,5 @@
 import express from 'express';
-import { cancelAppointment, doctorDashboard, getDoctorAppointments, getDoctorAvailability, changePassword,
+import { cancelAppointment, doctorDashboard, getDoctorAppointments, getDoctorAvailability, changePassword,searchDoctor,searchDoctorBySpeciality,
     getDoctorProfile, getListDoctor, loginDoctor, markAppointmentCompleted, updateDoctorProfile, unlockAccount } from '../controllers/doctorController.js';
 import authDoctor from '../middlewares/authDoctor.js';
 const doctorRouter=express.Router()
@@ -14,4 +14,6 @@ doctorRouter.post('/update-profile',authDoctor,updateDoctorProfile)
 doctorRouter.post('/doctor-available',getDoctorAvailability)
 doctorRouter.post('/unlock-account', unlockAccount)
 doctorRouter.post('/change-password', authDoctor, changePassword)
+doctorRouter.post('/search-doctor', searchDoctor)
+doctorRouter.post('/search-doctor-by-speciality', searchDoctorBySpeciality)
 export default doctorRouter

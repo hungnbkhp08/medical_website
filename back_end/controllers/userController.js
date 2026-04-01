@@ -54,7 +54,6 @@ const registerUser = async (req, res) => {
           `<p>Mã OTP để đăng ký tài khoản của bạn là: <strong>${otp}</strong></p>
            <p>Mã này có hiệu lực trong 10 phút.</p>`
         );
-
     //  Lưu user mới
     const newUser = new userModel({
       name,
@@ -75,6 +74,13 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password) {
+      return res.json({ success: false, message: "Vui lòng điền đầy đủ thông tin" });
+    }
+
+      if (!validator.isEmail(email)) {
+      return res.json({ success: false, message: "Vui lòng nhập email hợp lệ" });
+    }
     const user = await userModel.findOne({ email })
       .select("+isLocked +countFailed +unlockToken +lastFailedAt +isActive");
 

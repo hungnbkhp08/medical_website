@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  back_end:
+    build:
+      context: ./back_end
+      dockerfile: Dockerfile
+    container_name: medical_backend
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+    env_file:
+      - ./back_end/.env
+    networks:
+      - medical_network
+
+  front_end:
+    build:
+      context: ./front_end
+      dockerfile: Dockerfile
+    container_name: medical_frontend
+    ports:
+      - "8386:80"
+    restart: unless-stopped
+    depends_on:
+      - back_end
+    networks:
+      - medical_network
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: medical_admin
+    ports:
+      - "8683:80"
+    restart: unless-stopped
+    depends_on:
+      - back_end
+    networks:
+      - medical_network
+
+networks:
+  medical_network:
+    driver: bridge

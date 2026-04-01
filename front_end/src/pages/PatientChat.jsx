@@ -129,9 +129,31 @@ const PatientChat = () => {
       });
 
       if (data.success) {
+        // Thêm message vừa gửi vào view
         setMessages((prev) => [...prev, data.message]);
         setInput("");
         setImage(null);
+
+        // Cập nhật conversations list: nếu đã có conv thì update lastMessage và đẩy lên top,
+        // nếu chưa có thì thêm mới vào đầu.
+        setConversations((prev) => {
+          try {
+            const idx = prev.findIndex((c) => c.doctor._id === selectedDoctor._id);
+            const newConv = { doctor: selectedDoctor, lastMessage: data.message, unreadCount: 0 };
+            if (idx >= 0) {
+              // update and move to top
+              const updated = [...prev];
+              updated[idx] = { ...updated[idx], lastMessage: data.message };
+              const moved = [updated[idx], ...updated.slice(0, idx), ...updated.slice(idx + 1)];
+              return moved;
+            } else {
+              return [newConv, ...prev];
+            }
+          } catch (e) {
+            console.error('Error updating conversations after send:', e);
+            return prev;
+          }
+        });
       } else {
         toast.error(data.message);
       }
@@ -195,7 +217,18 @@ const PatientChat = () => {
                     {doctor.name}
                   </p>
                   <p className="text-xs text-gray-500 truncate">
-                    {conv?.lastMessage?.content || "Chưa có tin nhắn"}
+                    {conv?.lastMessage ? (
+                      conv.lastMessage.image ? (
+                        <span className="flex items-center gap-2">
+                          <img src={conv.lastMessage.image} alt="preview" className="w-10 h-6 object-cover rounded-md" />
+                          <span className="truncate">Ảnh</span>
+                        </span>
+                      ) : (
+                        conv.lastMessage.content || 'Ảnh'
+                      )
+                    ) : (
+                      "Chưa có tin nhắn"
+                    )}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-1">
