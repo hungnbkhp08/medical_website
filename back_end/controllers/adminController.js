@@ -5,6 +5,7 @@ import doctorModel from "../models/doctorModel.js";
 import jwt from "jsonwebtoken";
 import appointmentModel from "../models/appointmentModel.js";
 import userModel from "../models/userModel.js";
+import logModel from "../models/logModel.js";
 import { sendMail } from "../utils/sendMail.js";
 import fs from "fs";
 import path from "path";
@@ -572,6 +573,16 @@ const resendAdminUnlockLink = async (req, res) => {
   }
 };
 
+const getLogs = async (req, res) => {
+  try {
+    const logs = await logModel.find({}).sort({ created_at: -1 });
+    res.json({ success: true, logs });
+  } catch (error) {
+    console.log(error);
+    res.json({ success: false, message: error.message });
+  }
+};
+
 export {
   addDoctor,
   loginAdmin,
@@ -583,4 +594,5 @@ export {
   deleteDoctor,
   unlockAdminAccount,
   resendAdminUnlockLink,
+  getLogs,
 };

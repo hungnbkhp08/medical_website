@@ -22,6 +22,7 @@ import ReviewManagement from "./pages/Admin/ReviewManagement";
 import DoctorReviewManagement from "./pages/Doctor/DoctorReviewManagement";
 import DoctorWallet from "./pages/Doctor/DoctorWallet";
 import WalletManagement from "./pages/Admin/WalletManagement";
+import Logs from "./pages/Admin/Logs";
 import Unauthorized from "./pages/Unauthorized";
 import {
   AdminProtectedRoute,
@@ -118,6 +119,14 @@ const App = () => {
                       element={
                         <AdminProtectedRoute aToken={aToken}>
                           <WalletManagement />
+                        </AdminProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="logs"
+                      element={
+                        <AdminProtectedRoute aToken={aToken}>
+                          <Logs />
                         </AdminProtectedRoute>
                       }
                     />
