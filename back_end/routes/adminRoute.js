@@ -4,20 +4,25 @@ import upload from '../middlewares/multer.js';
 import authAdmin from '../middlewares/authAdmin.js';
 import { changeAvailablity } from '../controllers/doctorController.js';
 import { managerPatient } from '../controllers/userController.js';
+import { getQueue, approveRequest, rejectRequest } from '../middlewares/layer4-hitl.js';
 
 const adminRouter = express.Router();
 
 adminRouter.post('/add-doctor',authAdmin, upload.single('image'), addDoctor);
 adminRouter.post('/login', loginAdmin);
-adminRouter.post('/all-doctors',authAdmin,allDoctor)
-adminRouter.post('/change-availability',authAdmin,changeAvailablity)
-adminRouter.post('/list-appointment',authAdmin,appointmentsAdmin)
-adminRouter.post('/cancel-appointment',authAdmin,cancelAppointment)
-adminRouter.post('/dashboard',authAdmin,adminDashboard)
-adminRouter.post('/update-doctor',authAdmin,updateDoctorProfile)
-adminRouter.post('/delete-doctor',authAdmin,deleteDoctor)
-adminRouter.post('/manager-patient',authAdmin,managerPatient)
-adminRouter.post('/unlock-account',unlockAdminAccount)
-adminRouter.post('/resend-unlock-link',resendAdminUnlockLink)
-adminRouter.post('/logs',authAdmin,getLogs)
+adminRouter.post('/all-doctors',authAdmin,allDoctor);
+adminRouter.post('/change-availability',authAdmin,changeAvailablity);
+adminRouter.post('/list-appointment',authAdmin,appointmentsAdmin);
+adminRouter.post('/cancel-appointment',authAdmin,cancelAppointment);
+adminRouter.post('/dashboard',authAdmin,adminDashboard);
+adminRouter.post('/update-doctor',authAdmin,updateDoctorProfile);
+adminRouter.post('/delete-doctor',authAdmin,deleteDoctor);
+adminRouter.post('/manager-patient',authAdmin,managerPatient);
+adminRouter.post('/unlock-account',unlockAdminAccount);
+adminRouter.post('/resend-unlock-link',resendAdminUnlockLink);
+adminRouter.post('/logs',authAdmin,getLogs);
+// Admin routes — nhớ thêm authAdmin middleware của bạn
+adminRouter.get('/hitl-queue',authAdmin, getQueue);
+adminRouter.post('/hitl-approve', authAdmin, approveRequest);
+adminRouter.post('/hitl-reject',  authAdmin, rejectRequest);
 export default adminRouter;

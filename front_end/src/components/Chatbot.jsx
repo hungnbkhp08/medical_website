@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useContext } from 'react';
+import React, { useState, useRef, useEffect, useContext, useCallback } from 'react';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
@@ -11,7 +11,6 @@ const Typewriter = ({ text, onTyping }) => {
   useEffect(() => {
     setDisplayedText('');
     let index = 0;
-    // 15ms per character gives a fast but visible streaming effect
     const interval = setInterval(() => {
       index++;
       setDisplayedText(text.slice(0, index));
@@ -21,27 +20,64 @@ const Typewriter = ({ text, onTyping }) => {
       }
     }, 15);
     return () => clearInterval(interval);
-  }, [text, onTyping]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
 
   return <>{displayedText}</>;
 };
 
+const DEFAULT_MESSAGE = { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Y tế. Tôi có thể giúp gì cho bạn hôm nay?' };
+
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Y tế. Tôi có thể giúp gì cho bạn hôm nay?' }
-  ]);
+  const [messages, setMessages] = useState([DEFAULT_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState('');
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [animatingIndex, setAnimatingIndex] = useState(-1);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   
-  const { backendUrl, userData } = useContext(AppContext);
+  const { backendUrl, userData, token } = useContext(AppContext);
   const messagesEndRef = useRef(null);
 
-  const scrollToBottom = () => {
+  // Load lịch sử tin nhắn từ backend khi mở chatbot
+  // Backend tự lấy conversationId từ DB user → gọi Dify API GET /v1/messages
+  useEffect(() => {
+    if (isOpen && !historyLoaded && userData?._id && token) {
+      const loadHistory = async () => {
+        setIsLoadingHistory(true);
+        try {
+          const { data } = await axios.post(`${backendUrl}/api/chatbot/messages`, {}, {
+            headers: { token }
+          });
+
+          if (data.success && data.data && data.data.length > 0) {
+            // Dify trả messages theo thứ tự mới nhất trước, cần reverse
+            const historyMessages = [];
+            
+            for (const msg of data.data) {
+              historyMessages.push({ role: 'user', content: msg.query });
+              historyMessages.push({ role: 'assistant', content: msg.answer });
+            }
+            
+            setMessages([DEFAULT_MESSAGE, ...historyMessages]);
+          }
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+        } finally {
+          setIsLoadingHistory(false);
+          setHistoryLoaded(true);
+        }
+      };
+      loadHistory();
+    } else if (isOpen && !userData?._id) {
+      setHistoryLoaded(true);
+    }
+  }, [isOpen, historyLoaded, token, backendUrl, userData]);
+
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -58,8 +94,9 @@ const Chatbot = () => {
     try {
       const { data } = await axios.post(`${backendUrl}/api/chatbot/chat`, {
         query: userMessage,
-        conversation_id: conversationId,
         user: userData ? userData._id : "guest-user",
+      }, {
+        headers: { token }
       });
 
       if (data.success) {
@@ -67,13 +104,10 @@ const Chatbot = () => {
           setAnimatingIndex(prev.length);
           return [...prev, { role: 'assistant', content: data.data.answer }];
         });
-        if (data.data.conversation_id) {
-            setConversationId(data.data.conversation_id);
-        }
       } else {
         setMessages(prev => {
           setAnimatingIndex(prev.length);
-          return [...prev, { role: 'assistant', content: 'Xin lỗi, tôi đã gặp lỗi. Vui lòng thử lại.' }];
+          return [...prev, { role: 'assistant', content: data.message || 'Xin lỗi, có lỗi xảy ra.' }];
         });
       }
     } catch (error) {
@@ -120,6 +154,14 @@ const Chatbot = () => {
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-4">
+            {isLoadingHistory && (
+              <div className="flex justify-center items-center py-4">
+                <div className="text-sm text-gray-500 flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  Đang tải lịch sử trò chuyện...
+                </div>
+              </div>
+            )}
             {messages.map((msg, idx) => (
               <div key={idx} className={`flex gap-2 items-end ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.role === 'assistant' && (

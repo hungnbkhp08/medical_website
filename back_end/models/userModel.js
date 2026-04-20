@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     unlockToken: { type: String, select: false },
     lastFailedAt: { type: Date, default: null, select: false },
     otpActive :{type:String,select :false}, 
-    otpExpire :{type:Date,select :false}
+    otpExpire :{type:Date,select :false},
+    conversationId: { type: String, default: '' }
 });
 const userModel = mongoose.model.user || mongoose.model("user", userSchema);
 export default userModel;
