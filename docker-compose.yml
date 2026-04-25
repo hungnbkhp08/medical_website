@@ -8,9 +8,9 @@ services:
     container_name: medical_backend
     ports:
       - "4000:4000"
-    restart: unless-stopped
     env_file:
       - ./back_end/.env
+    restart: unless-stopped
     networks:
       - medical_network
 
@@ -20,10 +20,10 @@ services:
       dockerfile: Dockerfile
     container_name: medical_frontend
     ports:
-      - "8386:80"
-    restart: unless-stopped
+      - "8386:3000"
     depends_on:
       - back_end
+    restart: unless-stopped
     networks:
       - medical_network
 
@@ -33,10 +33,10 @@ services:
       dockerfile: Dockerfile
     container_name: medical_admin
     ports:
-      - "8683:80"
-    restart: unless-stopped
+      - "8683:3000"
     depends_on:
       - back_end
+    restart: unless-stopped
     networks:
       - medical_network
 

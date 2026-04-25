@@ -9,13 +9,15 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production stage - dùng serve thay nginx
+FROM node:18-alpine
 
-# Copy built assets từ build stage sang nginx folder
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Expose port 80 cho Nginx bên trong container
-EXPOSE 80
+RUN npm install -g serve
 
-CMD ["nginx", "-g", "daemon off;"]
+COPY --from=build /app/dist ./dist
+
+EXPOSE 3000
+
+CMD ["serve", "-s", "dist", "-l", "3000"]
