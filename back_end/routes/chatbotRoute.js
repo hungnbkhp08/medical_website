@@ -5,12 +5,13 @@ import { inputValidation } from '../middlewares/layer1-input-validation.js';
 import authUser from '../middlewares/authUser.js';
 import { outputValidation } from '../middlewares/layer3-output-validation.js';
 import { hitlCheck } from '../middlewares/layer4-hitl.js';
+import { rateLimiter } from '../middlewares/layer5-rate-limiter.js';
 
 
 const router = express.Router();
 
 router.post('/messages', authUser, getChatMessages);
-router.post('/chat', authUser, inputValidation, hitlCheck, sendChatMessage, outputValidation);
-router.post('/chat-sec', inputValidation,hitlCheck, sendChatSecMessage, outputValidation);
+router.post('/chat', authUser, rateLimiter, inputValidation, hitlCheck, sendChatMessage, outputValidation);
+router.post('/chat-sec', rateLimiter, inputValidation, hitlCheck, sendChatSecMessage, outputValidation);
 
 export default router;
