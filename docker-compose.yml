@@ -11,6 +11,8 @@ services:
     env_file:
       - ./back_end/.env
     restart: unless-stopped
+    depends_on:
+      - redis
     networks:
       - medical_network
 
@@ -37,6 +39,14 @@ services:
     depends_on:
       - back_end
     restart: unless-stopped
+    networks:
+      - medical_network
+
+  redis:
+    image: redis:alpine
+    container_name: medical_redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
     networks:
       - medical_network
 
