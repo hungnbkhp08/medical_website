@@ -5,14 +5,6 @@
  * ║  Chống tấn công Best-of-N (BoN) Jailbreaking               ║
  * ╚══════════════════════════════════════════════════════════════╝
  *
- * Cài đặt:
- *   npm install ioredis
- *
- * Thêm vào .env:
- *   REDIS_HOST=127.0.0.1
- *   REDIS_PORT=6379
- *   REDIS_PASSWORD=           # để trống nếu không có
- *
  * Cách dùng:
  *   import { rateLimiter } from './middlewares/layer5-rate-limiter.js';
  *
@@ -30,7 +22,7 @@
 
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
-import logModel from '../models/log.model.js';
+import logModel from '../models/logModel.js';
 
 // ──────────────────────────────────────────────────────────────────
 // CONFIG — chỉnh tại đây
