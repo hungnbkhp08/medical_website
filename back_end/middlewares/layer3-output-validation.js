@@ -129,7 +129,7 @@ export const outputValidation = async (req, res) => {
   const difyData = res.locals.difyData;
   const answer   = difyData?.answer ?? '';
 
-  const userId = req.user?.id ?? req.user?._id ?? req.user?.user_id ?? 'anonymous';
+    const { userId } = req.body;
   const source = req.headers['x-forwarded-for']?.split(',')[0].trim()
     ?? req.socket?.remoteAddress
     ?? 'unknown';

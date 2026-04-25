@@ -163,7 +163,7 @@ async function checkRateLimit(userId) {
 // EXPRESS MIDDLEWARE
 // ──────────────────────────────────────────────────────────────────
 export const rateLimiter = async (req, res, next) => {
-  const userId = req.user?.id ?? req.user?._id ?? req.user?.user_id;
+   const { userId } = req.body;
   const source = req.headers['x-forwarded-for']?.split(',')[0].trim()
     ?? req.socket?.remoteAddress
     ?? 'unknown';
