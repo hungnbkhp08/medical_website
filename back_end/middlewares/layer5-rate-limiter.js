@@ -52,9 +52,9 @@ const CONFIG = {
 // REDIS CLIENT
 // ──────────────────────────────────────────────────────────────────
 const redis = new Redis({
-  host:     process.env.REDIS_HOST     || '127.0.0.1',
-  port:     parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
+  host:     process.env.REDIS_HOST,
+  port:     process.env.REDIS_PORT,
+  password: process.env.REDIS_PASSWORD,
   // Tự reconnect khi mất kết nối
   retryStrategy: (times) => Math.min(times * 500, 5000),
   lazyConnect: true,

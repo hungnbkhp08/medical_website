@@ -1,6 +1,8 @@
+import 'dotenv/config';
+console.log('REDIS_HOST:', process.env.REDIS_HOST);
+console.log('REDIS_PORT:', process.env.REDIS_PORT);
 import express from 'express';
 import cors from 'cors';
-import 'dotenv/config';
 import http from 'http';
 import { Server } from 'socket.io';
 
