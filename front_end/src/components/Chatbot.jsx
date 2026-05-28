@@ -114,7 +114,7 @@ const Chatbot = () => {
       console.error(error);
       setMessages(prev => {
         setAnimatingIndex(prev.length);
-        return [...prev, { role: 'assistant', content: 'Xin lỗi, có vấn đề khi kết nối tới máy chủ.' }];
+        return [...prev, { role: 'assistant', content: 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn!' }];
       });
     } finally {
       setIsLoading(false);
