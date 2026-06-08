@@ -291,143 +291,235 @@ const Chatbot = () => {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 font-sans text-gray-800">
-      {isOpen ? (
+    <>
+      {/* ── Expanded fullscreen mode ── */}
+      {isOpen && isExpanded && (
         <>
-        {/* Backdrop overlay when expanded */}
-        {isExpanded && (
           <div
-            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-black/30 backdrop-blur-sm"
             onClick={() => setIsExpanded(false)}
-            style={{ transition: 'opacity 0.3s ease' }}
           />
-        )}
-        <div
-          className={`relative bg-white flex flex-col overflow-hidden border border-gray-200 shadow-xl ${
-            isExpanded
-              ? 'fixed inset-4 sm:inset-8 lg:inset-16 z-50 rounded-3xl'
-              : 'w-96 h-[600px] rounded-xl'
-          }`}
-          style={{ transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}
-        >
-          {/* Header */}
-          <div className="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-xl shadow-sm z-10">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-white p-0.5 overflow-hidden shadow-sm flex items-center justify-center">
-                <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Doctor Avatar" className="w-[120%] h-[120%] object-cover rounded-full" />
+          <div
+            className="fixed inset-4 sm:inset-8 lg:inset-16 z-[70] bg-white rounded-3xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden"
+            style={{ transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+          >
+            {/* Header */}
+            <div className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-sm z-10 shrink-0 rounded-t-3xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white p-0.5 overflow-hidden shadow-sm flex items-center justify-center">
+                  <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Doctor Avatar" className="w-[120%] h-[120%] object-cover rounded-full" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-lg leading-tight">Trợ lý Y tế</span>
+                  <span className="text-xs text-blue-100 flex items-center gap-1 font-medium mt-0.5">
+                    <span className="w-2 h-2 bg-green-400 rounded-full shadow-sm"></span> Trực tuyến
+                  </span>
+                </div>
               </div>
-              <div className="flex flex-col">
-                <span className="font-semibold text-lg leading-tight">Trợ lý Y tế</span>
-                <span className="text-xs text-blue-100 flex items-center gap-1 font-medium mt-0.5">
-                  <span className="w-2 h-2 bg-green-400 rounded-full shadow-sm"></span> Trực tuyến
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              {/* Expand / Collapse button */}
-              <button
-                onClick={() => setIsExpanded((prev) => !prev)}
-                className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
-                title={isExpanded ? 'Thu nhỏ' : 'Phóng to'}
-              >
-                {isExpanded ? (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsExpanded(false)}
+                  className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                  title="Thu nhỏ"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 9L4 4m0 0v4m0-4h4m6 6l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0v-4m0 4h4m6-6l5-5m0 0v4m0-4h-4" />
                   </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
-                  </svg>
-                )}
-              </button>
-              {/* Close button */}
+                </button>
+                <button
+                  onClick={() => { setIsExpanded(false); setIsOpen(false); }}
+                  className="text-white/70 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10"
+                  title="Đóng"
+                >
+                  <CloseIcon fontSize="small" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50 flex flex-col gap-4">
+              {isLoadingHistory && (
+                <div className="flex justify-center items-center py-4">
+                  <div className="text-sm text-gray-500 flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    Đang tải lịch sử trò chuyện...
+                  </div>
+                </div>
+              )}
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex gap-3 items-end ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="w-9 h-9 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[70%] p-4 rounded-2xl text-sm shadow-sm leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-sm'
+                        : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'
+                    }`}
+                  >
+                    {msg.role === 'assistant' && animatingIndex === idx ? (
+                      <Typewriter text={msg.content} onTyping={scrollToBottom} />
+                    ) : (
+                      <Markdown text={msg.content} isUser={msg.role === 'user'} />
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex gap-3 items-end justify-start">
+                  <div className="w-9 h-9 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
+                    <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
+                  </div>
+                  <div className="bg-white text-gray-800 max-w-[70%] p-4 rounded-2xl text-sm rounded-bl-sm shadow-sm border border-gray-100 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-4 border-t border-gray-200 bg-white flex items-center gap-3 shrink-0">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Nhắn tin cho trợ lý y tế..."
+                className="flex-1 p-3 px-4 border border-gray-300 rounded-xl outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                disabled={isLoading}
+              />
               <button
-                onClick={() => { setIsExpanded(false); setIsOpen(false); }}
-                className="text-white/70 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10"
-                title="Đóng"
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="p-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
               >
-                <CloseIcon fontSize="small" />
+                <SendIcon fontSize="small" />
               </button>
             </div>
           </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-4">
-            {isLoadingHistory && (
-              <div className="flex justify-center items-center py-4">
-                <div className="text-sm text-gray-500 flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                  Đang tải lịch sử trò chuyện...
-                </div>
-              </div>
-            )}
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex gap-2 items-end ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
-                  </div>
-                )}
-                <div
-                  className={`max-w-[75%] p-3 rounded-2xl text-sm shadow-sm leading-relaxed ${
-                    msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-br-sm'
-                      : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'
-                  }`}
-                >
-                  {msg.role === 'assistant' && animatingIndex === idx ? (
-                    <Typewriter text={msg.content} onTyping={scrollToBottom} />
-                  ) : (
-                    <Markdown text={msg.content} isUser={msg.role === 'user'} />
-                  )}
-                </div>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="flex gap-2 items-end justify-start">
-                <div className="w-8 h-8 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
-                    <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
-                </div>
-                <div className="bg-white text-gray-800 max-w-[75%] p-4 rounded-2xl text-sm rounded-bl-sm shadow-sm border border-gray-100 flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200" style={{ animationDelay: '0.2s' }}></div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="p-3 border-t border-gray-200 bg-white flex items-center gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Nhắn tin cho trợ lý y tế..."
-              className="flex-1 p-2 px-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
-              disabled={isLoading}
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isLoading}
-              className="p-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-            >
-              <SendIcon fontSize="small" />
-            </button>
-          </div>
-        </div>
         </>
-      ) : (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition"
-        >
-          <ChatIcon fontSize="large" />
-        </button>
       )}
-    </div>
+
+      {/* ── Normal floating mode ── */}
+      <div className="fixed bottom-4 right-4 z-50 font-sans text-gray-800">
+        {isOpen && !isExpanded ? (
+          <div className="relative w-96 h-[600px] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden border border-gray-200">
+            {/* Header */}
+            <div className="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-xl shadow-sm z-10 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white p-0.5 overflow-hidden shadow-sm flex items-center justify-center">
+                  <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Doctor Avatar" className="w-[120%] h-[120%] object-cover rounded-full" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-lg leading-tight">Trợ lý Y tế</span>
+                  <span className="text-xs text-blue-100 flex items-center gap-1 font-medium mt-0.5">
+                    <span className="w-2 h-2 bg-green-400 rounded-full shadow-sm"></span> Trực tuyến
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsExpanded(true)}
+                  className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                  title="Phóng to"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-white/70 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10"
+                  title="Đóng"
+                >
+                  <CloseIcon fontSize="small" />
+                </button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 bg-gray-50 flex flex-col gap-4">
+              {isLoadingHistory && (
+                <div className="flex justify-center items-center py-4">
+                  <div className="text-sm text-gray-500 flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    Đang tải lịch sử trò chuyện...
+                  </div>
+                </div>
+              )}
+              {messages.map((msg, idx) => (
+                <div key={idx} className={`flex gap-2 items-end ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  {msg.role === 'assistant' && (
+                    <div className="w-8 h-8 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
+                    </div>
+                  )}
+                  <div
+                    className={`max-w-[75%] p-3 rounded-2xl text-sm shadow-sm leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-blue-600 text-white rounded-br-sm'
+                        : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'
+                    }`}
+                  >
+                    {msg.role === 'assistant' && animatingIndex === idx ? (
+                      <Typewriter text={msg.content} onTyping={scrollToBottom} />
+                    ) : (
+                      <Markdown text={msg.content} isUser={msg.role === 'user'} />
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex gap-2 items-end justify-start">
+                  <div className="w-8 h-8 rounded-full shadow-sm border border-gray-200 bg-white flex-shrink-0 flex items-center justify-center overflow-hidden">
+                      <img src="https://cdn-icons-png.flaticon.com/512/8050/8050478.png" alt="Avatar" className="w-[120%] h-[120%] object-cover" />
+                  </div>
+                  <div className="bg-white text-gray-800 max-w-[75%] p-4 rounded-2xl text-sm rounded-bl-sm shadow-sm border border-gray-100 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input */}
+            <div className="p-3 border-t border-gray-200 bg-white flex items-center gap-2 shrink-0">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Nhắn tin cho trợ lý y tế..."
+                className="flex-1 p-2 px-3 border border-gray-300 rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isLoading}
+                className="p-2 px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              >
+                <SendIcon fontSize="small" />
+              </button>
+            </div>
+          </div>
+        ) : !isOpen ? (
+          <button
+            onClick={() => setIsOpen(true)}
+            className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition"
+          >
+            <ChatIcon fontSize="large" />
+          </button>
+        ) : null}
+      </div>
+    </>
   );
 };
 
