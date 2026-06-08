@@ -1,4 +1,39 @@
 import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Helper function to update CON_ID in .env
+const updateEnvConId = (newConId) => {
+    try {
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        const envPath = path.resolve(__dirname, '../.env');
+
+        if (fs.existsSync(envPath)) {
+            let envContent = fs.readFileSync(envPath, 'utf8');
+            const conIdRegExp = /^CON_ID\s*=\s*['"]?[^'"\r\n]*['"]?/m;
+            const newLine = `CON_ID='${newConId}'`;
+
+            if (conIdRegExp.test(envContent)) {
+                envContent = envContent.replace(conIdRegExp, newLine);
+            } else {
+                if (envContent.length > 0 && !envContent.endsWith('\n')) {
+                    envContent += '\n';
+                }
+                envContent += `${newLine}\n`;
+            }
+
+            fs.writeFileSync(envPath, envContent, 'utf8');
+            process.env.CON_ID = newConId;
+            console.log("Successfully updated CON_ID in .env:", newConId);
+        } else {
+            console.error(".env file not found at", envPath);
+        }
+    } catch (err) {
+        console.error("Error updating CON_ID in .env:", err.message);
+    }
+};
 
 export const sendChatSecMessage = async (req, res, next) => {
     try {
@@ -33,6 +68,22 @@ export const sendChatSecMessage = async (req, res, next) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
+        // Intercept stream to grab conversation_id on the first chat
+        response.data.on('data', (chunk) => {
+            try {
+                const str = chunk.toString();
+                const match = str.match(/"conversation_id"\s*:\s*"([^"]+)"/);
+                if (match && match[1]) {
+                    const newConId = match[1];
+                    if (newConId && !process.env.CON_ID) {
+                        updateEnvConId(newConId);
+                    }
+                }
+            } catch (err) {
+                console.error("Error parsing stream for conversation_id:", err);
+            }
+        });
+
         response.data.pipe(res);
     } catch (error) {
         console.error("Error calling Dify API SEC:", error?.response?.data || error.message);
@@ -47,11 +98,13 @@ export const sendChatSecMessage = async (req, res, next) => {
 
 export const getChatSecMessages = async (req, res) => {
     try {
+        // Lấy conversationId từ .env thay vì DB
         const conversationId = process.env.CON_ID;
         if (!conversationId) {
             return res.json({ success: true, conversationId: '', data: [] });
         }
 
+        // Gọi Dify API GET /v1/messages?user=xxx&conversation_id=xxx
         const response = await axios.get(
             'https://api.dify.ai/v1/messages',
             {
@@ -74,6 +127,7 @@ export const getChatSecMessages = async (req, res) => {
         });
     } catch (error) {
         console.error("Error fetching Dify messages SEC:", error?.response?.data || error.message);
+        // Nếu conversation không tìm thấy trên Dify
         if (error?.response?.status === 404) {
             return res.json({ success: true, conversationId: '', data: [] });
         }
