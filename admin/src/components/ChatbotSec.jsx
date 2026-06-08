@@ -169,6 +169,7 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
     const [historyLoaded, setHistoryLoaded] = useState(false);
     const messagesEndRef = useRef(null);
@@ -331,7 +332,23 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
     }
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end shadow-2xl rounded-2xl w-[350px] sm:w-[400px] h-[550px] max-h-[80vh] overflow-hidden bg-white border border-gray-200 anime-fade-in">
+        <>
+        {/* Backdrop overlay when expanded */}
+        {isExpanded && (
+            <div
+                className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+                onClick={() => setIsExpanded(false)}
+                style={{ transition: 'opacity 0.3s ease' }}
+            />
+        )}
+        <div
+            className={`fixed z-50 flex flex-col overflow-hidden bg-white border border-gray-200 shadow-2xl ${
+                isExpanded
+                    ? 'inset-4 sm:inset-8 lg:inset-16 rounded-3xl'
+                    : 'bottom-6 right-6 w-[350px] sm:w-[400px] h-[550px] max-h-[80vh] rounded-2xl'
+            }`}
+            style={{ transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}
+        >
             {/* Header */}
             <div className="bg-gray-800 text-white px-5 py-4 w-full flex justify-between items-center z-10 shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
@@ -345,14 +362,34 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
                         <p className="text-[11px] text-gray-300">Tư vấn phân tích log bảo mật</p>
                     </div>
                 </div>
-                <button 
-                    onClick={() => setIsOpen(false)}
-                    className="text-gray-400 hover:text-white transition-colors p-1"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
+                <div className="flex items-center gap-1">
+                    {/* Expand / Collapse button */}
+                    <button
+                        onClick={() => setIsExpanded((prev) => !prev)}
+                        className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                        title={isExpanded ? 'Thu nhỏ' : 'Phóng to'}
+                    >
+                        {isExpanded ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9L4 4m0 0v4m0-4h4m6 6l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0v-4m0 4h4m6-6l5-5m0 0v4m0-4h-4" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
+                            </svg>
+                        )}
+                    </button>
+                    {/* Close button */}
+                    <button 
+                        onClick={() => { setIsExpanded(false); setIsOpen(false); }}
+                        className="text-gray-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                        title="Đóng"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             {/* Messages List */}
@@ -430,6 +467,7 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
                 </form>
             </div>
         </div>
+        </>
     );
 };
 

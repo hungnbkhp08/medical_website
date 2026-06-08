@@ -192,6 +192,7 @@ const DEFAULT_MESSAGE = { role: 'assistant', content: 'Xin chào! Tôi là Trợ
 
 const Chatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState([DEFAULT_MESSAGE]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -292,7 +293,23 @@ const Chatbot = () => {
   return (
     <div className="fixed bottom-4 right-4 z-50 font-sans text-gray-800">
       {isOpen ? (
-        <div className="relative w-96 h-[600px] bg-white rounded-xl shadow-xl flex flex-col overflow-hidden border border-gray-200">
+        <>
+        {/* Backdrop overlay when expanded */}
+        {isExpanded && (
+          <div
+            className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
+            onClick={() => setIsExpanded(false)}
+            style={{ transition: 'opacity 0.3s ease' }}
+          />
+        )}
+        <div
+          className={`relative bg-white flex flex-col overflow-hidden border border-gray-200 shadow-xl ${
+            isExpanded
+              ? 'fixed inset-4 sm:inset-8 lg:inset-16 z-50 rounded-3xl'
+              : 'w-96 h-[600px] rounded-xl'
+          }`}
+          style={{ transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}
+        >
           {/* Header */}
           <div className="bg-blue-600 text-white p-4 flex justify-between items-center rounded-t-xl shadow-sm z-10">
             <div className="flex items-center gap-3">
@@ -306,12 +323,32 @@ const Chatbot = () => {
                 </span>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-gray-200 transition p-1 hover:bg-blue-700 rounded-full"
-            >
-              <CloseIcon />
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Expand / Collapse button */}
+              <button
+                onClick={() => setIsExpanded((prev) => !prev)}
+                className="text-white/70 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/10"
+                title={isExpanded ? 'Thu nhỏ' : 'Phóng to'}
+              >
+                {isExpanded ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 9L4 4m0 0v4m0-4h4m6 6l5 5m0 0v-4m0 4h-4M9 15l-5 5m0 0v-4m0 4h4m6-6l5-5m0 0v4m0-4h-4" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5h-4m4 0v-4m0 4l-5-5" />
+                  </svg>
+                )}
+              </button>
+              {/* Close button */}
+              <button
+                onClick={() => { setIsExpanded(false); setIsOpen(false); }}
+                className="text-white/70 hover:text-white transition p-1.5 rounded-lg hover:bg-white/10"
+                title="Đóng"
+              >
+                <CloseIcon fontSize="small" />
+              </button>
+            </div>
           </div>
 
           {/* Messages */}
@@ -381,6 +418,7 @@ const Chatbot = () => {
             </button>
           </div>
         </div>
+        </>
       ) : (
         <button
           onClick={() => setIsOpen(true)}
