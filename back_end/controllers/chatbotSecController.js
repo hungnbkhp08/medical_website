@@ -28,10 +28,18 @@ export const sendChatSecMessage = async (req, res, next) => {
             }
         );
 
-        res.locals.difyData = response.data;
-        next();
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        response.data.pipe(res);
     } catch (error) {
         console.error("Error calling Dify API SEC:", error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: "Chatbot Sec error", error: error?.response?.data || error.message });
+        // If headers are already sent (error during streaming), close the response.
+        if (res.headersSent) {
+            res.end();
+        } else {
+            res.status(500).json({ success: false, message: "Chatbot Sec error", error: error?.response?.data || error.message });
+        }
     }
 };
