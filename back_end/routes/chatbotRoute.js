@@ -12,6 +12,6 @@ const router = express.Router();
 
 router.post('/messages', authUser, getChatMessages);
 router.post('/chat', authUser, rateLimiter, inputValidation, hitlCheck, sendChatMessage, outputValidation);
-router.post('/chat-sec', rateLimiter, inputValidation, hitlCheck, sendChatSecMessage, outputValidation);
+router.post('/chat-sec', rateLimiter, sendChatSecMessage);
 
 export default router;
