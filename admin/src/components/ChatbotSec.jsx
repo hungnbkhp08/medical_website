@@ -2,12 +2,177 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import axios from 'axios';
 import { AdminContext } from '../context/AdminContext';
 
+const parseInline = (text, isUser = false) => {
+    if (!text) return '';
+    const parts = [];
+    const regex = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g;
+    let match;
+    let lastIndex = 0;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) {
+            parts.push(text.slice(lastIndex, match.index));
+        }
+        const token = match[0];
+        if (token.startsWith('`') && token.endsWith('`')) {
+            parts.push(
+                <code 
+                    key={match.index} 
+                    className={isUser 
+                        ? "bg-blue-700 text-blue-100 px-1 py-0.5 rounded font-mono text-xs font-semibold" 
+                        : "bg-gray-100 text-red-500 px-1.5 py-0.5 rounded font-mono text-xs font-semibold"
+                    }
+                >
+                    {token.slice(1, -1)}
+                </code>
+            );
+        } else if (token.startsWith('**') && token.endsWith('**')) {
+            parts.push(
+                <strong key={match.index} className="font-bold">
+                    {token.slice(2, -2)}
+                </strong>
+            );
+        } else if (token.startsWith('*') && token.endsWith('*')) {
+            parts.push(
+                <em key={match.index} className="italic">
+                    {token.slice(1, -1)}
+                </em>
+            );
+        }
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+        parts.push(text.slice(lastIndex));
+    }
+    return parts.length > 0 ? parts : text;
+};
+
+const Markdown = ({ text, isUser = false }) => {
+    if (!text) return null;
+    const lines = text.split(/\r?\n/);
+    const blocks = [];
+    let currentList = null;
+    let currentCodeBlock = null;
+
+    const commitCurrentList = (key) => {
+        if (currentList) {
+            const ListTag = currentList.type;
+            const listClass = currentList.type === 'ul' ? 'list-disc pl-5 mb-2 space-y-1' : 'list-decimal pl-5 mb-2 space-y-1';
+            blocks.push(
+                <ListTag key={key} className={listClass}>
+                    {currentList.items.map((item, i) => (
+                        <li key={i}>{parseInline(item, isUser)}</li>
+                    ))}
+                </ListTag>
+            );
+            currentList = null;
+        }
+    };
+
+    const commitCodeBlock = (key) => {
+        if (currentCodeBlock) {
+            blocks.push(
+                <pre key={key} className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2 font-mono text-xs max-w-full">
+                    <code>{currentCodeBlock.code.join('\n')}</code>
+                </pre>
+            );
+            currentCodeBlock = null;
+        }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        if (line.trim().startsWith('```')) {
+            if (currentCodeBlock) {
+                commitCodeBlock(`code-${i}`);
+            } else {
+                commitCurrentList(`list-${i}`);
+                currentCodeBlock = { code: [] };
+            }
+            continue;
+        }
+
+        if (currentCodeBlock) {
+            currentCodeBlock.code.push(line);
+            continue;
+        }
+
+        const headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+        if (headerMatch) {
+            commitCurrentList(`list-${i}`);
+            const level = headerMatch[1].length;
+            const content = headerMatch[2];
+            const HeaderTag = `h${level}`;
+            const headerClasses = {
+                1: 'text-xl font-extrabold my-2 border-b pb-1 border-gray-200',
+                2: 'text-lg font-bold my-2',
+                3: 'text-base font-bold my-1.5',
+                4: 'text-sm font-semibold my-1',
+                5: 'text-xs font-semibold my-1',
+                6: 'text-xs font-medium my-1 text-gray-500'
+            };
+
+            blocks.push(
+                <HeaderTag key={`h-${i}`} className={headerClasses[level] || 'font-bold'}>
+                    {parseInline(content, isUser)}
+                </HeaderTag>
+            );
+            continue;
+        }
+
+        const ulMatch = line.match(/^[\*\-\+]\s+(.*)$/);
+        if (ulMatch) {
+            const content = ulMatch[1];
+            if (currentList && currentList.type === 'ul') {
+                currentList.items.push(content);
+            } else {
+                commitCurrentList(`list-${i}`);
+                currentList = { type: 'ul', items: [content] };
+            }
+            continue;
+        }
+
+        const olMatch = line.match(/^\d+\.\s+(.*)$/);
+        if (olMatch) {
+            const content = olMatch[1];
+            if (currentList && currentList.type === 'ol') {
+                currentList.items.push(content);
+            } else {
+                commitCurrentList(`list-${i}`);
+                currentList = { type: 'ol', items: [content] };
+            }
+            continue;
+        }
+
+        if (!line.trim()) {
+            commitCurrentList(`list-${i}`);
+            blocks.push(<div key={`blank-${i}`} className="h-2" />);
+            continue;
+        }
+
+        commitCurrentList(`list-${i}`);
+        blocks.push(
+            <p key={`p-${i}`} className="mb-2 leading-relaxed">
+                {parseInline(line, isUser)}
+            </p>
+        );
+    }
+
+    commitCurrentList('list-end');
+    commitCodeBlock('code-end');
+
+    return <div className="markdown-body text-sm space-y-1">{blocks}</div>;
+};
+
 const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
     const { backendUrl } = useContext(AdminContext);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const [historyLoaded, setHistoryLoaded] = useState(false);
     const messagesEndRef = useRef(null);
+    const pendingLogQueryRef = useRef(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -17,22 +182,64 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
         scrollToBottom();
     }, [messages, isOpen]);
 
+    // Load chat-sec history when the chatbot is opened
+    useEffect(() => {
+        if (isOpen && !historyLoaded) {
+            const loadHistory = async () => {
+                setIsLoadingHistory(true);
+                let currentMessages = [];
+                try {
+                    const response = await axios.get(`${backendUrl}/api/chatbot/chat-sec/messages`);
+                    if (response.data.success && response.data.data) {
+                        const historyMessages = [];
+                        const sortedMessages = [...response.data.data].reverse();
+                        for (const msg of sortedMessages) {
+                            historyMessages.push({ text: msg.query, sender: 'user' });
+                            historyMessages.push({ text: msg.answer, sender: 'bot' });
+                        }
+                        currentMessages = historyMessages;
+                    }
+                } catch (error) {
+                    console.error('Error loading chat-sec history:', error);
+                } finally {
+                    setMessages(currentMessages);
+                    setIsLoadingHistory(false);
+                    setHistoryLoaded(true);
+
+                    // Send any pending log consultation query that arrived while history was loading
+                    if (pendingLogQueryRef.current) {
+                        handleSendMessage(pendingLogQueryRef.current, currentMessages);
+                        pendingLogQueryRef.current = null;
+                    }
+                }
+            };
+            loadHistory();
+        }
+    }, [isOpen, historyLoaded, backendUrl]);
+
     // Send initial log data for consultation when logData changes (e.g. clicking 'Tư vấn')
     useEffect(() => {
         if (logData) {
             const initialQuery = `Hãy tư vấn xử lý log bảo mật sau:\n- Rule ID: ${logData.rule_id || 'N/A'}\n- Mức độ: ${logData.severity_label || 'N/A'}\n- Nội dung: ${logData.msg || 'N/A'}\n- Dữ liệu chi tiết: ${logData.data || 'N/A'}`;
-            handleSendMessage(initialQuery);
+            if (!historyLoaded) {
+                pendingLogQueryRef.current = initialQuery;
+            } else {
+                handleSendMessage(initialQuery);
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [logData]);
 
-    const handleSendMessage = async (textToSend) => {
+    const handleSendMessage = async (textToSend, baseMessages = null) => {
         const query = textToSend || input;
         if (!query.trim()) return;
 
         const userMessage = { text: query, sender: 'user' };
         // Immediately add user message and an empty bot message
-        setMessages((prev) => [...prev, userMessage, { text: '', sender: 'bot' }]);
+        setMessages((prev) => {
+            const startMsgs = baseMessages || prev;
+            return [...startMsgs, userMessage, { text: '', sender: 'bot' }];
+        });
         setInput('');
         setIsLoading(true);
 
@@ -150,7 +357,15 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
 
             {/* Messages List */}
             <div className="flex-1 w-full p-4 overflow-y-auto bg-gray-50 flex flex-col gap-3">
-                {messages.length === 0 && (
+                {isLoadingHistory && (
+                    <div className="flex justify-center items-center py-4">
+                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                            Đang tải lịch sử trò chuyện...
+                        </div>
+                    </div>
+                )}
+                {messages.length === 0 && !isLoadingHistory && (
                     <div className="flex flex-col items-center justify-center h-full text-center text-gray-400 gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -167,7 +382,7 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
                                 ? 'bg-red-50 text-red-700 border border-red-100 rounded-tl-sm' 
                                 : 'bg-white border border-gray-200 text-gray-800 rounded-tl-sm'
                         }`}>
-                            <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.text}</p>
+                            <Markdown text={msg.text} isUser={msg.sender === 'user'} />
                         </div>
                     </div>
                 ))}

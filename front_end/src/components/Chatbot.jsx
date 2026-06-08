@@ -5,6 +5,168 @@ import SendIcon from '@mui/icons-material/Send';
 import axios from 'axios';
 import { AppContext } from '../context/AppContext';
 
+const parseInline = (text, isUser = false) => {
+  if (!text) return '';
+  const parts = [];
+  const regex = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g;
+  let match;
+  let lastIndex = 0;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith('`') && token.endsWith('`')) {
+      parts.push(
+        <code 
+          key={match.index} 
+          className={isUser 
+            ? "bg-blue-700 text-blue-100 px-1 py-0.5 rounded font-mono text-xs font-semibold" 
+            : "bg-gray-100 text-red-500 px-1.5 py-0.5 rounded font-mono text-xs font-semibold"
+          }
+        >
+          {token.slice(1, -1)}
+        </code>
+      );
+    } else if (token.startsWith('**') && token.endsWith('**')) {
+      parts.push(
+        <strong key={match.index} className="font-bold">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      parts.push(
+        <em key={match.index} className="italic">
+          {token.slice(1, -1)}
+        </em>
+      );
+    }
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+  return parts.length > 0 ? parts : text;
+};
+
+const Markdown = ({ text, isUser = false }) => {
+  if (!text) return null;
+  const lines = text.split(/\r?\n/);
+  const blocks = [];
+  let currentList = null;
+  let currentCodeBlock = null;
+
+  const commitCurrentList = (key) => {
+    if (currentList) {
+      const ListTag = currentList.type;
+      const listClass = currentList.type === 'ul' ? 'list-disc pl-5 mb-2 space-y-1' : 'list-decimal pl-5 mb-2 space-y-1';
+      blocks.push(
+        <ListTag key={key} className={listClass}>
+          {currentList.items.map((item, i) => (
+            <li key={i}>{parseInline(item, isUser)}</li>
+          ))}
+        </ListTag>
+      );
+      currentList = null;
+    }
+  };
+
+  const commitCodeBlock = (key) => {
+    if (currentCodeBlock) {
+      blocks.push(
+        <pre key={key} className="bg-gray-800 text-gray-100 p-3 rounded-lg overflow-x-auto my-2 font-mono text-xs max-w-full">
+          <code>{currentCodeBlock.code.join('\n')}</code>
+        </pre>
+      );
+      currentCodeBlock = null;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.trim().startsWith('```')) {
+      if (currentCodeBlock) {
+        commitCodeBlock(`code-${i}`);
+      } else {
+        commitCurrentList(`list-${i}`);
+        currentCodeBlock = { code: [] };
+      }
+      continue;
+    }
+
+    if (currentCodeBlock) {
+      currentCodeBlock.code.push(line);
+      continue;
+    }
+
+    const headerMatch = line.match(/^(#{1,6})\s+(.*)$/);
+    if (headerMatch) {
+      commitCurrentList(`list-${i}`);
+      const level = headerMatch[1].length;
+      const content = headerMatch[2];
+      const HeaderTag = `h${level}`;
+      const headerClasses = {
+        1: 'text-xl font-extrabold my-2 border-b pb-1 border-gray-200',
+        2: 'text-lg font-bold my-2',
+        3: 'text-base font-bold my-1.5',
+        4: 'text-sm font-semibold my-1',
+        5: 'text-xs font-semibold my-1',
+        6: 'text-xs font-medium my-1 text-gray-500'
+      };
+
+      blocks.push(
+        <HeaderTag key={`h-${i}`} className={headerClasses[level] || 'font-bold'}>
+          {parseInline(content, isUser)}
+        </HeaderTag>
+      );
+      continue;
+    }
+
+    const ulMatch = line.match(/^[\*\-\+]\s+(.*)$/);
+    if (ulMatch) {
+      const content = ulMatch[1];
+      if (currentList && currentList.type === 'ul') {
+        currentList.items.push(content);
+      } else {
+        commitCurrentList(`list-${i}`);
+        currentList = { type: 'ul', items: [content] };
+      }
+      continue;
+    }
+
+    const olMatch = line.match(/^\d+\.\s+(.*)$/);
+    if (olMatch) {
+      const content = olMatch[1];
+      if (currentList && currentList.type === 'ol') {
+        currentList.items.push(content);
+      } else {
+        commitCurrentList(`list-${i}`);
+        currentList = { type: 'ol', items: [content] };
+      }
+      continue;
+    }
+
+    if (!line.trim()) {
+      commitCurrentList(`list-${i}`);
+      blocks.push(<div key={`blank-${i}`} className="h-2" />);
+      continue;
+    }
+
+    commitCurrentList(`list-${i}`);
+    blocks.push(
+      <p key={`p-${i}`} className="mb-2 leading-relaxed">
+        {parseInline(line, isUser)}
+      </p>
+    );
+  }
+
+  commitCurrentList('list-end');
+  commitCodeBlock('code-end');
+
+  return <div className="markdown-body text-sm space-y-1">{blocks}</div>;
+};
+
 const Typewriter = ({ text, onTyping }) => {
   const [displayedText, setDisplayedText] = useState('');
 
@@ -23,7 +185,7 @@ const Typewriter = ({ text, onTyping }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
 
-  return <>{displayedText}</>;
+  return <Markdown text={displayedText} isUser={false} />;
 };
 
 const DEFAULT_MESSAGE = { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Y tế. Tôi có thể giúp gì cho bạn hôm nay?' };
@@ -179,7 +341,7 @@ const Chatbot = () => {
                   {msg.role === 'assistant' && animatingIndex === idx ? (
                     <Typewriter text={msg.content} onTyping={scrollToBottom} />
                   ) : (
-                    msg.content
+                    <Markdown text={msg.content} isUser={msg.role === 'user'} />
                   )}
                 </div>
               </div>

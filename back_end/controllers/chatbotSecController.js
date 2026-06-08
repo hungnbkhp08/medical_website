@@ -12,8 +12,9 @@ export const sendChatSecMessage = async (req, res, next) => {
             files: files
         };
 
-        if (conversation_id) {
-            requestData.conversation_id = conversation_id;
+        const conversationId = conversation_id || process.env.CON_ID;
+        if (conversationId) {
+            requestData.conversation_id = conversationId;
         }
 
         const response = await axios.post(
@@ -41,5 +42,41 @@ export const sendChatSecMessage = async (req, res, next) => {
         } else {
             res.status(500).json({ success: false, message: "Chatbot Sec error", error: error?.response?.data || error.message });
         }
+    }
+};
+
+export const getChatSecMessages = async (req, res) => {
+    try {
+        const conversationId = process.env.CON_ID;
+        if (!conversationId) {
+            return res.json({ success: true, conversationId: '', data: [] });
+        }
+
+        const response = await axios.get(
+            'https://api.dify.ai/v1/messages',
+            {
+                params: {
+                    user: "admin-sec-user",
+                    conversation_id: conversationId,
+                    limit: 100,
+                },
+                headers: {
+                    'Authorization': `Bearer ${process.env.DIFY_KEY_SEC}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        res.json({
+            success: true,
+            conversationId: conversationId,
+            data: response.data.data || []
+        });
+    } catch (error) {
+        console.error("Error fetching Dify messages SEC:", error?.response?.data || error.message);
+        if (error?.response?.status === 404) {
+            return res.json({ success: true, conversationId: '', data: [] });
+        }
+        res.status(500).json({ success: false, message: "Error fetching messages", error: error?.response?.data || error.message });
     }
 };
