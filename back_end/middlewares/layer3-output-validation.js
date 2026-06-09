@@ -20,6 +20,8 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import logModel from '../models/logModel.js';
+import { PassThrough } from 'stream';
+import userModel from '../models/userModel.js';
 
 // ──────────────────────────────────────────────────────────────────
 // CONFIG
@@ -125,15 +127,105 @@ async function saveLog({ userId, source, data, msg, ruleId, risk }) {
 // MIDDLEWARE
 // ──────────────────────────────────────────────────────────────────
 export const outputValidation = async (req, res) => {
-  // sendChatMessage ghi kết quả vào res.locals.difyData
-  const difyData = res.locals.difyData;
-  const answer   = difyData?.answer ?? '';
-
-    const { userId } = req.body;
+  const difyStream = res.locals.difyStream;
+  const difyData   = res.locals.difyData;
+  const userId     = res.locals.userId || req.body.userId;
   const source = req.headers['x-forwarded-for']?.split(',')[0].trim()
     ?? req.socket?.remoteAddress
     ?? 'unknown';
 
+  // --- Hỗ trợ Streaming ---
+  if (difyStream) {
+    let conversationId = res.locals.conversationId;
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    const passThrough = new PassThrough();
+    let accumulatedAnswer = '';
+    let isStreamClosed = false;
+
+    passThrough.on('data', async (chunk) => {
+      if (isStreamClosed) return;
+
+      try {
+        const str = chunk.toString();
+        
+        // 1. Lưu conversationId vào DB nếu là conversation mới
+        const conIdMatch = str.match(/"conversation_id"\s*:\s*"([^"]+)"/);
+        if (conIdMatch && conIdMatch[1]) {
+          const newConId = conIdMatch[1];
+          if (newConId && userId && newConId !== conversationId) {
+            await userModel.findByIdAndUpdate(userId, { conversationId: newConId });
+            conversationId = newConId;
+          }
+        }
+
+        // 2. Tích lũy answer để quét bảo mật
+        const lines = str.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const dataPayload = line.slice(6).trim();
+            if (!dataPayload) continue;
+
+            try {
+              const data = JSON.parse(dataPayload);
+              
+              // Kiểm tra intent từ Dify
+              if (data.intent === 'prompt_injection') {
+                console.warn(`[Layer3] BLOCKED intent | user_id=${userId}`);
+                await saveLog({
+                  userId,
+                  source,
+                  data: req.body.query,
+                  msg: 'Dify phát hiện intent = prompt_injection',
+                  ruleId: 'LAYER3_INTENT_INJECTION',
+                  risk: { label: 'HIGH', level: '3' },
+                });
+                res.write(`data: ${JSON.stringify({ event: 'error', message: 'Yêu cầu không hợp lệ.' })}\n\n`);
+                isStreamClosed = true;
+                passThrough.destroy();
+                res.end();
+                return;
+              }
+
+              const answerChunk = data.answer || data.data?.text || '';
+              accumulatedAnswer += answerChunk;
+            } catch (e) {
+              // Bỏ qua lỗi parse dở dang
+            }
+          }
+        }
+
+        // 3. Quét leak
+        const { isViolation, risk, reasons } = analyzeOutput(accumulatedAnswer);
+        if (isViolation) {
+          console.warn(`[Layer3] BLOCKED output | user_id=${userId} | ${reasons.join(' | ')}`);
+          await saveLog({
+            userId,
+            source,
+            data: accumulatedAnswer.slice(0, 500),
+            msg: reasons.join(' | '),
+            ruleId: 'LAYER3_OUTPUT_LEAK',
+            risk,
+          });
+          res.write(`data: ${JSON.stringify({ event: 'error', message: 'Không thể cung cấp thông tin này.' })}\n\n`);
+          isStreamClosed = true;
+          passThrough.destroy();
+          res.end();
+          return;
+        }
+      } catch (err) {
+        console.error("Error in streaming outputValidation:", err);
+      }
+    });
+
+    difyStream.pipe(passThrough).pipe(res);
+    return;
+  }
+
+  // --- Hỗ trợ Blocking (Giữ nguyên gốc) ---
+  const answer = difyData?.answer ?? '';
   console.info(`[Layer3] user_id=${userId} answer_length=${answer.length}`);
 
   // ① Kiểm tra intent từ Dify

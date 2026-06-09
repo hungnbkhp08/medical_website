@@ -67,7 +67,7 @@ export const sendChatMessage = async (req, res, next) => {
         const requestData = {
             inputs: {},
             query: query,
-            response_mode: "blocking",
+            response_mode: "streaming",
             user: userId || user,
             files: files
         };
@@ -83,21 +83,22 @@ export const sendChatMessage = async (req, res, next) => {
                 headers: {
                     'Authorization': `Bearer ${process.env.DIFY_KEY}`,
                     'Content-Type': 'application/json'
-                }
+                },
+                responseType: 'stream'
             }
         );
 
-        // Lưu conversationId vào DB nếu là conversation mới
-        const newConversationId = response.data?.conversation_id;
-        if (newConversationId && userId && newConversationId !== conversationId) {
-            await userModel.findByIdAndUpdate(userId, { conversationId: newConversationId });
-        }
-
-        res.locals.difyData = response.data;
+        res.locals.difyStream = response.data;
+        res.locals.userId = userId;
+        res.locals.conversationId = conversationId;
         next();
     } catch (error) {
-        console.error("Error calling Dify API:", error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: "Chatbot error", error: error?.response?.data || error.message });
+        let errorMessage = error.message;
+        if (error?.response?.data) {
+            errorMessage = `Dify API error: ${error.response.statusText || 'Error'}`;
+        }
+        console.error("Error calling Dify API:", error.message);
+        res.status(500).json({ success: false, message: "Chatbot error", error: errorMessage });
     }
 };
 
