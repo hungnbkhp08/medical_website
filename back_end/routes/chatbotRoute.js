@@ -1,5 +1,12 @@
 import express from 'express';
-import { sendChatMessage, getChatMessages, getDiagnosesByConversationId } from '../controllers/chatbotController.js';
+import { 
+    sendChatMessage, 
+    getChatMessages, 
+    getDiagnosesByConversationId,
+    getHumanInputForm,
+    submitHumanInputForm,
+    getWorkflowEvents
+} from '../controllers/chatbotController.js';
 import { sendChatSecMessage, getChatSecMessages } from '../controllers/chatbotSecController.js';
 import { inputValidation } from '../middlewares/layer1-input-validation.js';
 import authUser from '../middlewares/authUser.js';
@@ -15,5 +22,9 @@ router.post('/chat', authUser, rateLimiter, inputValidation, hitlCheck, sendChat
 router.post('/chat-sec', rateLimiter, sendChatSecMessage);
 router.get('/chat-sec/messages', getChatSecMessages);
 router.get('/diagnoses', getDiagnosesByConversationId);
+
+router.get('/form/human_input/:form_token', authUser, getHumanInputForm);
+router.post('/form/human_input/:form_token', authUser, submitHumanInputForm);
+router.get('/workflow/:task_id/events', authUser, getWorkflowEvents);
 
 export default router;

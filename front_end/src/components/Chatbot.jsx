@@ -188,6 +188,112 @@ const Typewriter = ({ text, onTyping }) => {
   return <Markdown text={displayedText} isUser={false} />;
 };
 
+const HumanInputForm = ({ msg, onSubmitted, backendUrl, token, userData }) => {
+  const [formValues, setFormValues] = useState(msg.resolvedDefaultValues || {});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(msg.submitted || false);
+  const [error, setError] = useState('');
+
+  const handleActionClick = async (actionId) => {
+    setIsSubmitting(true);
+    setError('');
+    try {
+      await axios.post(
+        `${backendUrl}/api/chatbot/form/human_input/${msg.formToken}`,
+        {
+          inputs: formValues,
+          action: actionId,
+          user: userData ? userData._id : "guest-user"
+        },
+        {
+          headers: { token }
+        }
+      );
+
+      setSubmitted(true);
+      onSubmitted({
+        taskId: msg.taskId,
+        actionId: actionId,
+        formValues: formValues
+      });
+    } catch (err) {
+      console.error("Error submitting human input form:", err);
+      setError(err.response?.data?.message || 'Có lỗi xảy ra khi gửi dữ liệu.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (submitted) {
+    return (
+      <div className="bg-gray-100 p-3 rounded-lg border border-gray-200 text-gray-600 text-xs italic">
+        Đã gửi xác nhận. Đang tiếp tục xử lý...
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-4 rounded-xl border border-blue-100 shadow-sm flex flex-col gap-3 text-gray-800">
+      <div className="text-sm font-semibold text-blue-800 flex items-center gap-1.5 border-b pb-2">
+        <span className="w-2.5 h-2.5 bg-blue-500 rounded-full animate-ping"></span>
+        Yêu cầu phản hồi từ bạn
+      </div>
+      
+      <div className="text-xs whitespace-pre-line text-gray-700 bg-gray-50 p-2.5 rounded-lg font-medium leading-relaxed">
+        {msg.formContent}
+      </div>
+
+      {msg.inputs && msg.inputs.map((input, idx) => (
+        <div key={idx} className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-gray-600 flex items-center gap-0.5">
+            {input.label || input.output_variable_name}
+            {input.required && <span className="text-red-500">*</span>}
+          </label>
+          {input.type === 'paragraph' ? (
+            <textarea
+              value={formValues[input.output_variable_name] || ''}
+              onChange={(e) => setFormValues(prev => ({ ...prev, [input.output_variable_name]: e.target.value }))}
+              className="border border-gray-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[60px]"
+              disabled={isSubmitting}
+            />
+          ) : (
+            <input
+              type="text"
+              value={formValues[input.output_variable_name] || ''}
+              onChange={(e) => setFormValues(prev => ({ ...prev, [input.output_variable_name]: e.target.value }))}
+              className="border border-gray-300 rounded-lg p-2 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              disabled={isSubmitting}
+            />
+          )}
+        </div>
+      ))}
+
+      {error && <div className="text-xs text-red-500 font-semibold">{error}</div>}
+
+      <div className="flex gap-2 justify-end mt-1">
+        {msg.actions && msg.actions.map((act, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleActionClick(act.id)}
+            disabled={isSubmitting}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition hover:scale-[1.02] active:scale-95 disabled:opacity-50 ${
+              act.button_style === 'primary' || act.button_style === 'default'
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : act.button_style === 'warning'
+              ? 'bg-amber-500 text-white hover:bg-amber-600'
+              : act.button_style === 'danger'
+              ? 'bg-red-600 text-white hover:bg-red-700'
+              : 'bg-gray-100 text-gray-800 hover:bg-gray-200 border'
+            }`}
+          >
+            {act.title}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const DEFAULT_MESSAGE = { role: 'assistant', content: 'Xin chào! Tôi là Trợ lý Y tế. Tôi có thể giúp gì cho bạn hôm nay?' };
 
 const Chatbot = () => {
@@ -246,6 +352,97 @@ const Chatbot = () => {
     scrollToBottom();
   }, [messages, isOpen]);
 
+  const handleResumeWorkflow = async (taskId) => {
+    setIsLoading(true);
+    
+    // Thêm một tin nhắn rỗng từ trợ lý để chuẩn bị nhận text stream
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
+    try {
+        const response = await fetch(`${backendUrl}/api/chatbot/workflow/${taskId}/events?user=${userData ? userData._id : "guest-user"}&continue_on_pause=true`, {
+            headers: { token }
+        });
+
+        if (!response.ok) {
+            throw new Error('Lỗi kết nối stream');
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let done = false;
+        let buffer = '';
+
+        while (!done) {
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            if (value) {
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const dataPayload = line.slice(6).trim();
+                        if (!dataPayload) continue;
+
+                        try {
+                            const eventData = JSON.parse(dataPayload);
+                            
+                            // 1. Nhận chunk văn bản
+                            if (eventData.event === 'text_chunk' && eventData.data?.text) {
+                                setMessages(prev => {
+                                    const nextMsgs = [...prev];
+                                    const last = nextMsgs[nextMsgs.length - 1];
+                                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                                        last.content = (last.content || '') + eventData.data.text;
+                                    }
+                                    return nextMsgs;
+                                });
+                            }
+                            
+                            // 2. Nếu tiếp tục bị tạm dừng
+                            if (eventData.event === 'workflow_paused') {
+                                const reasons = eventData.data?.reasons || [];
+                                const reason = reasons.find(r => r.type === 'human_input_required');
+                                if (reason) {
+                                    setMessages(prev => [
+                                        ...prev,
+                                        {
+                                            role: 'assistant',
+                                            type: 'human_input',
+                                            formToken: reason.form_token,
+                                            taskId: taskId,
+                                            formContent: reason.form_content,
+                                            inputs: reason.inputs,
+                                            actions: reason.actions || reason.user_actions,
+                                            resolvedDefaultValues: reason.resolved_default_values,
+                                            submitted: false
+                                        }
+                                    ]);
+                                }
+                            }
+                        } catch (e) {
+                            // Bỏ qua lỗi parse dở dang
+                        }
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error reading workflow events:", error);
+        setMessages(prev => {
+            const nextMsgs = [...prev];
+            const last = nextMsgs[nextMsgs.length - 1];
+            if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                last.content = 'Xin lỗi, có lỗi xảy ra trong quá trình nhận phản hồi.';
+            }
+            return nextMsgs;
+        });
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -263,9 +460,37 @@ const Chatbot = () => {
       });
 
       if (data.success) {
+        const difyData = data.data;
+
+        // Kiểm tra xem workflow có bị tạm dừng (cần human input) hay không
+        if (difyData && (difyData.status === 'paused' || difyData.data?.status === 'paused')) {
+          const taskId = difyData.task_id || difyData.data?.id;
+          const reasons = difyData.reasons || difyData.data?.reasons || [];
+          const reason = reasons.find(r => r.type === 'human_input_required');
+          
+          if (reason) {
+            setMessages(prev => [
+              ...prev,
+              {
+                role: 'assistant',
+                type: 'human_input',
+                formToken: reason.form_token,
+                taskId: taskId,
+                formContent: reason.form_content,
+                inputs: reason.inputs,
+                actions: reason.actions || reason.user_actions,
+                resolvedDefaultValues: reason.resolved_default_values,
+                submitted: false
+              }
+            ]);
+            setIsLoading(false);
+            return;
+          }
+        }
+
         setMessages(prev => {
           setAnimatingIndex(prev.length);
-          return [...prev, { role: 'assistant', content: data.data.answer }];
+          return [...prev, { role: 'assistant', content: difyData.answer || difyData.outputs?.output || 'Hoàn thành!' }];
         });
       } else {
         setMessages(prev => {
@@ -354,13 +579,30 @@ const Chatbot = () => {
                     </div>
                   )}
                   <div
-                    className={`max-w-[70%] p-4 rounded-2xl text-sm shadow-sm leading-relaxed ${
+                    className={`max-w-[70%] text-sm leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-sm'
-                        : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'
+                        ? 'p-4 rounded-2xl shadow-sm bg-blue-600 text-white rounded-br-sm'
+                        : msg.type === 'human_input'
+                          ? 'w-full'
+                          : 'p-4 rounded-2xl shadow-sm bg-white text-gray-800 rounded-bl-sm border border-gray-100'
                     }`}
                   >
-                    {msg.role === 'assistant' && animatingIndex === idx ? (
+                    {msg.type === 'human_input' ? (
+                      <HumanInputForm
+                        msg={msg}
+                        onSubmitted={({ taskId }) => {
+                          setMessages(prev => {
+                            const nextMsgs = [...prev];
+                            nextMsgs[idx] = { ...nextMsgs[idx], submitted: true };
+                            return nextMsgs;
+                          });
+                          handleResumeWorkflow(taskId);
+                        }}
+                        backendUrl={backendUrl}
+                        token={token}
+                        userData={userData}
+                      />
+                    ) : msg.role === 'assistant' && animatingIndex === idx ? (
                       <Typewriter text={msg.content} onTyping={scrollToBottom} />
                     ) : (
                       <Markdown text={msg.content} isUser={msg.role === 'user'} />
@@ -461,13 +703,30 @@ const Chatbot = () => {
                     </div>
                   )}
                   <div
-                    className={`max-w-[75%] p-3 rounded-2xl text-sm shadow-sm leading-relaxed ${
+                    className={`max-w-[75%] text-sm leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-blue-600 text-white rounded-br-sm'
-                        : 'bg-white text-gray-800 rounded-bl-sm border border-gray-100'
+                        ? 'p-3 rounded-2xl shadow-sm bg-blue-600 text-white rounded-br-sm'
+                        : msg.type === 'human_input'
+                          ? 'w-full'
+                          : 'p-3 rounded-2xl shadow-sm bg-white text-gray-800 rounded-bl-sm border border-gray-100'
                     }`}
                   >
-                    {msg.role === 'assistant' && animatingIndex === idx ? (
+                    {msg.type === 'human_input' ? (
+                      <HumanInputForm
+                        msg={msg}
+                        onSubmitted={({ taskId }) => {
+                          setMessages(prev => {
+                            const nextMsgs = [...prev];
+                            nextMsgs[idx] = { ...nextMsgs[idx], submitted: true };
+                            return nextMsgs;
+                          });
+                          handleResumeWorkflow(taskId);
+                        }}
+                        backendUrl={backendUrl}
+                        token={token}
+                        userData={userData}
+                      />
+                    ) : msg.role === 'assistant' && animatingIndex === idx ? (
                       <Typewriter text={msg.content} onTyping={scrollToBottom} />
                     ) : (
                       <Markdown text={msg.content} isUser={msg.role === 'user'} />

@@ -134,3 +134,85 @@ export const getDiagnosesByConversationId = async (req, res) => {
         res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };
+
+// GET /api/chatbot/form/human_input/:form_token - Lấy form human input từ Dify
+export const getHumanInputForm = async (req, res) => {
+    try {
+        const { form_token } = req.params;
+        const response = await axios.get(
+            `https://api.dify.ai/v1/form/human_input/${form_token}`,
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.DIFY_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        res.json(response.data);
+    } catch (error) {
+        console.error("Error fetching human input form:", error?.response?.data || error.message);
+        const status = error?.response?.status || 500;
+        res.status(status).json(error?.response?.data || { success: false, message: error.message });
+    }
+};
+
+// POST /api/chatbot/form/human_input/:form_token - Gửi dữ liệu human input lên Dify
+export const submitHumanInputForm = async (req, res) => {
+    try {
+        const { form_token } = req.params;
+        const { inputs, action, user } = req.body;
+
+        const response = await axios.post(
+            `https://api.dify.ai/v1/form/human_input/${form_token}`,
+            { inputs, action, user },
+            {
+                headers: {
+                    'Authorization': `Bearer ${process.env.DIFY_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+        res.json(response.data || {});
+    } catch (error) {
+        console.error("Error submitting human input form:", error?.response?.data || error.message);
+        const status = error?.response?.status || 500;
+        res.status(status).json(error?.response?.data || { success: false, message: error.message });
+    }
+};
+
+// GET /api/chatbot/workflow/:task_id/events - Lắng nghe tiếp sự kiện workflow bằng SSE
+export const getWorkflowEvents = async (req, res) => {
+    try {
+        const { task_id } = req.params;
+        const { user, include_state_snapshot, continue_on_pause } = req.query;
+
+        const response = await axios.get(
+            `https://api.dify.ai/v1/workflow/${task_id}/events`,
+            {
+                params: {
+                    user,
+                    include_state_snapshot,
+                    continue_on_pause
+                },
+                headers: {
+                    'Authorization': `Bearer ${process.env.DIFY_KEY}`
+                },
+                responseType: 'stream'
+            }
+        );
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        response.data.pipe(res);
+    } catch (error) {
+        console.error("Error getting workflow events:", error?.response?.data || error.message);
+        if (res.headersSent) {
+            res.end();
+        } else {
+            const status = error?.response?.status || 500;
+            res.status(status).json(error?.response?.data || { success: false, message: error.message });
+        }
+    }
+};
