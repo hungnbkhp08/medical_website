@@ -1,5 +1,6 @@
 import axios from 'axios';
 import userModel from '../models/userModel.js';
+import resultModel from '../models/resultModel.js';
 
 // POST /api/chatbot/messages - Lấy lịch sử tin nhắn từ Dify dựa vào conversationId trong DB user
 export const getChatMessages = async (req, res) => {
@@ -97,5 +98,39 @@ export const sendChatMessage = async (req, res, next) => {
     } catch (error) {
         console.error("Error calling Dify API:", error?.response?.data || error.message);
         res.status(500).json({ success: false, message: "Chatbot error", error: error?.response?.data || error.message });
+    }
+};
+
+// GET /api/chatbot/diagnoses - Lấy danh sách chẩn đoán dựa trên conversationId
+export const getDiagnosesByConversationId = async (req, res) => {
+    try {
+        const conversationId = req.query.conversationId || req.body.conversationId;
+
+        if (!conversationId) {
+            return res.status(400).json({ success: false, message: "Missing conversationId parameter" });
+        }
+
+        // 1. Tìm user theo conversationId
+        const user = await userModel.findOne({ conversationId }).select('_id');
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found with the provided conversationId" });
+        }
+
+        // 2. Lấy dữ liệu diagnosis từ bảng result theo userId
+        const results = await resultModel.find({ userId: user._id }).select('diagnosis');
+        
+        // 3. Chuyển thành list string
+        const diagnoses = results.map(r => r.diagnosis).filter(d => d);
+        const diagnosisString = diagnoses.join(',');
+
+        res.json({
+            success: true,
+            userId: user._id,
+            diagnoses: diagnoses,
+            diagnosisList: diagnosisString
+        });
+    } catch (error) {
+        console.error("Error in getDiagnosesByConversationId:", error);
+        res.status(500).json({ success: false, message: "Server error", error: error.message });
     }
 };

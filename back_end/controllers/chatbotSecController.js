@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { PassThrough } from 'stream';
 
 // Helper function to update CON_ID in .env
 const updateEnvConId = (newConId) => {
@@ -68,8 +69,10 @@ export const sendChatSecMessage = async (req, res, next) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
+        const passThrough = new PassThrough();
+
         // Intercept stream to grab conversation_id on the first chat
-        response.data.on('data', (chunk) => {
+        passThrough.on('data', (chunk) => {
             try {
                 const str = chunk.toString();
                 const match = str.match(/"conversation_id"\s*:\s*"([^"]+)"/);
@@ -84,14 +87,19 @@ export const sendChatSecMessage = async (req, res, next) => {
             }
         });
 
-        response.data.pipe(res);
+        response.data.pipe(passThrough).pipe(res);
     } catch (error) {
-        console.error("Error calling Dify API SEC:", error?.response?.data || error.message);
+        let errorMessage = error.message;
+        if (error?.response?.data) {
+            errorMessage = `Dify API error: ${error.response.statusText || 'Error'}`;
+        }
+        console.error("Error calling Dify API SEC:", error.message);
+        
         // If headers are already sent (error during streaming), close the response.
         if (res.headersSent) {
             res.end();
         } else {
-            res.status(500).json({ success: false, message: "Chatbot Sec error", error: error?.response?.data || error.message });
+            res.status(500).json({ success: false, message: "Chatbot Sec error", error: errorMessage });
         }
     }
 };

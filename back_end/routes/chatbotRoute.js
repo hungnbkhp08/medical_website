@@ -1,5 +1,5 @@
 import express from 'express';
-import { sendChatMessage, getChatMessages } from '../controllers/chatbotController.js';
+import { sendChatMessage, getChatMessages, getDiagnosesByConversationId } from '../controllers/chatbotController.js';
 import { sendChatSecMessage, getChatSecMessages } from '../controllers/chatbotSecController.js';
 import { inputValidation } from '../middlewares/layer1-input-validation.js';
 import authUser from '../middlewares/authUser.js';
@@ -14,5 +14,6 @@ router.post('/messages', authUser, getChatMessages);
 router.post('/chat', authUser, rateLimiter, inputValidation, hitlCheck, sendChatMessage, outputValidation);
 router.post('/chat-sec', rateLimiter, sendChatSecMessage);
 router.get('/chat-sec/messages', getChatSecMessages);
+router.get('/diagnoses', getDiagnosesByConversationId);
 
 export default router;
