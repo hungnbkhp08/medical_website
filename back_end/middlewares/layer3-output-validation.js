@@ -22,6 +22,7 @@ import { v4 as uuidv4 } from 'uuid';
 import logModel from '../models/logModel.js';
 import { PassThrough } from 'stream';
 import userModel from '../models/userModel.js';
+import axios from 'axios';
 
 // ──────────────────────────────────────────────────────────────────
 // CONFIG
@@ -123,6 +124,28 @@ async function saveLog({ userId, source, data, msg, ruleId, risk }) {
   }
 }
 
+async function deleteConversation(conversationId, userId) {
+  if (!conversationId || !userId) return;
+  try {
+    const response = await axios.delete(
+      `https://api.dify.ai/v1/conversations/${conversationId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.DIFY_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          user: userId.toString()
+        }
+      }
+    );
+    console.info(`[Layer3] Deleted conversation ${conversationId}:`, response.data.result);
+    await userModel.findByIdAndUpdate(userId, { conversationId: '' });
+  } catch (err) {
+    console.error(`[Layer3] Lỗi xóa conversation ${conversationId}:`, err?.response?.data || err.message);
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────
 // MIDDLEWARE
 // ──────────────────────────────────────────────────────────────────
@@ -182,6 +205,7 @@ export const outputValidation = async (req, res) => {
                   ruleId: 'LAYER3_INTENT_INJECTION',
                   risk: { label: 'HIGH', level: '3' },
                 });
+                await deleteConversation(conversationId, userId);
                 res.write(`data: ${JSON.stringify({ event: 'error', message: 'Yêu cầu không hợp lệ.' })}\n\n`);
                 isStreamClosed = true;
                 passThrough.destroy();
@@ -209,6 +233,7 @@ export const outputValidation = async (req, res) => {
             ruleId: 'LAYER3_OUTPUT_LEAK',
             risk,
           });
+          await deleteConversation(conversationId, userId);
           res.write(`data: ${JSON.stringify({ event: 'error', message: 'Không thể cung cấp thông tin này.' })}\n\n`);
           isStreamClosed = true;
           passThrough.destroy();
@@ -240,6 +265,7 @@ export const outputValidation = async (req, res) => {
       ruleId: 'LAYER3_INTENT_INJECTION',
       risk:   intentCheck.risk,
     });
+    await deleteConversation(res.locals.conversationId, userId);
     return res.status(400).json({ success: false, message: 'Yêu cầu không hợp lệ.' });
   }
 
@@ -255,6 +281,7 @@ export const outputValidation = async (req, res) => {
       ruleId: 'LAYER3_OUTPUT_LEAK',
       risk,
     });
+    await deleteConversation(res.locals.conversationId, userId);
     return res.status(400).json({ success: false, message: 'Không thể cung cấp thông tin này.' });
   }
 
