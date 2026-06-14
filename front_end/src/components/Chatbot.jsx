@@ -360,7 +360,10 @@ const Chatbot = () => {
 
     try {
         const response = await fetch(`${backendUrl}/api/chatbot/workflow/${taskId}/events?user=${userData ? userData._id : "guest-user"}&continue_on_pause=true`, {
-            headers: { token }
+            headers: { 
+                token,
+                'ngrok-skip-browser-warning': 'true'
+            }
         });
 
         if (!response.ok) {
@@ -388,40 +391,73 @@ const Chatbot = () => {
                         try {
                             const eventData = JSON.parse(dataPayload);
                             
-                            // 1. Nhận chunk văn bản
-                            if (eventData.event === 'text_chunk' && eventData.data?.text) {
+                            if (eventData.event === 'error') {
                                 setMessages(prev => {
                                     const nextMsgs = [...prev];
                                     const last = nextMsgs[nextMsgs.length - 1];
                                     if (last && last.role === 'assistant' && last.type !== 'human_input') {
-                                        last.content = (last.content || '') + eventData.data.text;
+                                        last.content = eventData.message || eventData.code || 'Lỗi xử lý từ máy chủ Dify.';
+                                    }
+                                    return nextMsgs;
+                                });
+                                break;
+                            }
+
+                            // 1. Nhận chunk văn bản
+                            if ((eventData.event === 'text_chunk' && eventData.data?.text) || (eventData.event === 'node_chunk' && eventData.data?.text) || (eventData.event === 'message' && eventData.answer)) {
+                                setMessages(prev => {
+                                    const nextMsgs = [...prev];
+                                    const last = nextMsgs[nextMsgs.length - 1];
+                                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                                        const text = eventData.event === 'message' ? eventData.answer : eventData.data.text;
+                                        last.content = (last.content || '') + text;
                                     }
                                     return nextMsgs;
                                 });
                             }
                             
                             // 2. Nếu tiếp tục bị tạm dừng
-                            if (eventData.event === 'workflow_paused') {
-                                const reasons = eventData.data?.reasons || [];
-                                const reason = reasons.find(r => r.type === 'human_input_required');
+                            const status = eventData.status || eventData.data?.status || eventData.metadata?.status;
+                            const isPaused = eventData.event === 'workflow_paused' || status === 'paused';
+                            const isHumanInputEvent = eventData.event === 'human_input_required';
+                            
+                            if (isPaused || isHumanInputEvent) {
+                                const taskIdToResume = eventData.workflow_run_id || eventData.data?.workflow_run_id || eventData.task_id || eventData.data?.task_id || eventData.data?.id || eventData.metadata?.task_id;
+                                let reason = null;
+                                
+                                if (eventData.event === 'human_input_required') {
+                                    reason = eventData.data || eventData;
+                                } else {
+                                    const reasons = eventData.reasons || eventData.data?.reasons || eventData.metadata?.reasons || [];
+                                    reason = reasons.find(r => r.type === 'human_input_required' || r.TYPE === 'human_input_required');
+                                }
+                                
                                 if (reason) {
-                                    setMessages(prev => [
-                                        ...prev,
-                                        {
-                                            role: 'assistant',
-                                            type: 'human_input',
-                                            formToken: reason.form_token,
-                                            taskId: taskId,
-                                            formContent: reason.form_content,
-                                            inputs: reason.inputs,
-                                            actions: reason.actions || reason.user_actions,
-                                            resolvedDefaultValues: reason.resolved_default_values,
-                                            submitted: false
+                                    setMessages(prev => {
+                                        // Avoid adding duplicate human input forms
+                                        const lastMsg = prev[prev.length - 1];
+                                        if (lastMsg && lastMsg.type === 'human_input' && lastMsg.formToken === reason.form_token) {
+                                            return prev;
                                         }
-                                    ]);
+                                        
+                                        return [
+                                            ...prev,
+                                            {
+                                                role: 'assistant',
+                                                type: 'human_input',
+                                                formToken: reason.form_token,
+                                                taskId: taskIdToResume,
+                                                formContent: reason.form_content,
+                                                inputs: reason.inputs,
+                                                actions: reason.actions || reason.user_actions,
+                                                resolvedDefaultValues: reason.resolved_default_values,
+                                                submitted: false
+                                            }
+                                        ];
+                                    });
                                 }
                             }
-                        } catch (e) {
+                        } catch {
                             // Bỏ qua lỗi parse dở dang
                         }
                     }
@@ -452,57 +488,141 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      const { data } = await axios.post(`${backendUrl}/api/chatbot/chat`, {
-        query: userMessage,
-        user: userData ? userData._id : "guest-user",
-      }, {
-        headers: { token }
+      const response = await fetch(`${backendUrl}/api/chatbot/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          token
+        },
+        body: JSON.stringify({
+          query: userMessage,
+          user: userData ? userData._id : "guest-user",
+        })
       });
 
-      if (data.success) {
-        const difyData = data.data;
+      if (!response.ok) {
+        throw new Error('Lỗi kết nối tới máy chủ');
+      }
 
-        // Kiểm tra xem workflow có bị tạm dừng (cần human input) hay không
-        if (difyData && (difyData.status === 'paused' || difyData.data?.status === 'paused')) {
-          const taskId = difyData.task_id || difyData.data?.id;
-          const reasons = difyData.reasons || difyData.data?.reasons || [];
-          const reason = reasons.find(r => r.type === 'human_input_required');
-          
-          if (reason) {
-            setMessages(prev => [
-              ...prev,
-              {
-                role: 'assistant',
-                type: 'human_input',
-                formToken: reason.form_token,
-                taskId: taskId,
-                formContent: reason.form_content,
-                inputs: reason.inputs,
-                actions: reason.actions || reason.user_actions,
-                resolvedDefaultValues: reason.resolved_default_values,
-                submitted: false
+      setMessages(prev => {
+        setAnimatingIndex(prev.length);
+        return [...prev, { role: 'assistant', content: '' }];
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+      let buffer = '';
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop(); // Giữ lại phần chưa hoàn chỉnh sau \n cuối cùng
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const dataPayload = line.slice(6).trim();
+              if (!dataPayload) continue;
+
+              try {
+                const eventData = JSON.parse(dataPayload);
+
+                // 1. Nhận lỗi
+                if (eventData.event === 'error') {
+                  setMessages(prev => {
+                    const nextMsgs = [...prev];
+                    const last = nextMsgs[nextMsgs.length - 1];
+                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                      last.content = eventData.message || 'Xin lỗi, có lỗi xảy ra.';
+                    }
+                    return nextMsgs;
+                  });
+                  break;
+                }
+
+                // 2. Nhận chunk văn bản
+                if (eventData.event === 'message' && eventData.answer) {
+                  setMessages(prev => {
+                    const nextMsgs = [...prev];
+                    const last = nextMsgs[nextMsgs.length - 1];
+                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                      last.content = (last.content || '') + eventData.answer;
+                    }
+                    return nextMsgs;
+                  });
+                } else if (eventData.event === 'text_chunk' && eventData.data?.text) {
+                  setMessages(prev => {
+                    const nextMsgs = [...prev];
+                    const last = nextMsgs[nextMsgs.length - 1];
+                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
+                      last.content = (last.content || '') + eventData.data.text;
+                    }
+                    return nextMsgs;
+                  });
+                }
+
+                // 3. Xử lý workflow paused / human input
+                const status = eventData.status || eventData.data?.status || eventData.metadata?.status;
+                const isPaused = eventData.event === 'workflow_paused' || status === 'paused';
+                const isHumanInputEvent = eventData.event === 'human_input_required';
+                
+                if (isPaused || isHumanInputEvent) {
+                  const taskId = eventData.workflow_run_id || eventData.data?.workflow_run_id || eventData.task_id || eventData.data?.task_id || eventData.data?.id || eventData.metadata?.task_id;
+                  let reason = null;
+                  
+                  if (eventData.event === 'human_input_required') {
+                      reason = eventData.data || eventData;
+                  } else {
+                      const reasons = eventData.reasons || eventData.data?.reasons || eventData.metadata?.reasons || [];
+                      reason = reasons.find(r => r.type === 'human_input_required' || r.TYPE === 'human_input_required');
+                  }
+                  
+                  if (reason) {
+                    setMessages(prev => {
+                      // Avoid adding duplicate human input forms
+                      const lastMsg = prev[prev.length - 1];
+                      if (lastMsg && lastMsg.type === 'human_input' && lastMsg.formToken === reason.form_token) {
+                          return prev;
+                      }
+                      
+                      return [
+                        ...prev,
+                        {
+                          role: 'assistant',
+                          type: 'human_input',
+                          formToken: reason.form_token,
+                          taskId: taskId,
+                          formContent: reason.form_content,
+                          inputs: reason.inputs,
+                          actions: reason.actions || reason.user_actions,
+                          resolvedDefaultValues: reason.resolved_default_values,
+                          submitted: false
+                        }
+                      ];
+                    });
+                  }
+                }
+              } catch {
+                // Bỏ qua lỗi parse dở dang
               }
-            ]);
-            setIsLoading(false);
-            return;
+            }
           }
         }
-
-        setMessages(prev => {
-          setAnimatingIndex(prev.length);
-          return [...prev, { role: 'assistant', content: difyData.answer || difyData.outputs?.output || 'Hoàn thành!' }];
-        });
-      } else {
-        setMessages(prev => {
-          setAnimatingIndex(prev.length);
-          return [...prev, { role: 'assistant', content: data.message || 'Xin lỗi, có lỗi xảy ra.' }];
-        });
       }
     } catch (error) {
       console.error(error);
       setMessages(prev => {
-        setAnimatingIndex(prev.length);
-        return [...prev, { role: 'assistant', content: 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn!' }];
+        const nextMsgs = [...prev];
+        const last = nextMsgs[nextMsgs.length - 1];
+        if (last && last.role === 'assistant' && last.content === '') {
+          last.content = 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn lúc này.';
+        } else if (last && last.role !== 'assistant') {
+          return [...prev, { role: 'assistant', content: 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn lúc này.' }];
+        }
+        return nextMsgs;
       });
     } finally {
       setIsLoading(false);
