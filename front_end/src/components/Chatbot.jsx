@@ -321,7 +321,7 @@ const Chatbot = () => {
   const [animatingIndex, setAnimatingIndex] = useState(-1);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   
-  const { backendUrl, userData, token, loadUserProfileData } = useContext(AppContext);
+  const { backendUrl, userData, token } = useContext(AppContext);
   const messagesEndRef = useRef(null);
 
   // Load lịch sử tin nhắn từ backend khi mở chatbot
@@ -515,14 +515,6 @@ const Chatbot = () => {
 
       if (!response.ok) {
         throw new Error('Lỗi kết nối tới máy chủ');
-      }
-
-      if (response.status === 202) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message || 'Yêu cầu đang được xem xét.' }]);
-        setIsLoading(false);
-        if (loadUserProfileData) loadUserProfileData();
-        return;
       }
 
       setMessages(prev => {

@@ -25,7 +25,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 const App = () => {
   const location = useLocation();
   const hideFooter = location.pathname === '/chat';
-  const { token, userData } = useContext(AppContext);
+  const { token } = useContext(AppContext);
 
   return (
     // Bọc toàn bộ App bằng GoogleOAuthProvider
@@ -69,7 +69,7 @@ const App = () => {
           <Route path='/unauthorized' element={<Unauthorized />} />
         </Routes>
         {!hideFooter && <Footer />}
-        {token && userData?.isActiveChat === 0 && <Chatbot />}
+        {token && <Chatbot />}
       </div>
     </GoogleOAuthProvider>
   );

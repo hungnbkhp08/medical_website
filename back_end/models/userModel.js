@@ -15,8 +15,7 @@ const userSchema = new mongoose.Schema({
     lastFailedAt: { type: Date, default: null, select: false },
     otpActive :{type:String,select :false}, 
     otpExpire :{type:Date,select :false},
-    conversationId: { type: String, default: '' },
-    isActiveChat: { type: Number, default: 0 }
+    conversationId: { type: String, default: '' }
 });
 const userModel = mongoose.model.user || mongoose.model("user", userSchema);
 export default userModel;

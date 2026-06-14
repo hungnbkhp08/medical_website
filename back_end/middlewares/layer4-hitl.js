@@ -133,15 +133,6 @@ export const hitlCheck = async (req, res, next) => {
     console.error('[Layer4] Lỗi lưu log:', err.message);
   }
 
-  // Update isActiveChat to 1 for the user if applicable
-  if (userId) {
-    try {
-      await userModel.findByIdAndUpdate(userId, { isActiveChat: 1 });
-    } catch (e) {
-      console.error('[Layer4] Lỗi cập nhật isActiveChat:', e.message);
-    }
-  }
-
   return res.status(202).json({
     success: false,
     message: 'Yêu cầu của bạn đang được xem xét. Chúng tôi sẽ phản hồi sớm nhất có thể.',
@@ -262,15 +253,6 @@ export const approveRequest = async (req, res) => {
       }
     );
 
-    // Update isActiveChat to 0
-    if (item.user_id) {
-      try {
-        await userModel.findByIdAndUpdate(item.user_id, { isActiveChat: 0 });
-      } catch (e) {
-        console.error('[Layer4] Lỗi cập nhật isActiveChat khi approve:', e.message);
-      }
-    }
-
     return res.json({ success: true, message: 'Đã approve.', data: difyResponse });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
@@ -300,15 +282,6 @@ export const rejectRequest = async (req, res) => {
         review_note: note,
       }
     );
-
-    // Update isActiveChat to 2
-    if (item.user_id) {
-      try {
-        await userModel.findByIdAndUpdate(item.user_id, { isActiveChat: 2 });
-      } catch (e) {
-        console.error('[Layer4] Lỗi cập nhật isActiveChat khi reject:', e.message);
-      }
-    }
 
     return res.json({ success: true, message: 'Đã reject.' });
   } catch (err) {
