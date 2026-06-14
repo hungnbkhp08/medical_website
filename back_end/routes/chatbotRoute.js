@@ -23,8 +23,8 @@ router.post('/chat-sec', rateLimiter, sendChatSecMessage);
 router.get('/chat-sec/messages', getChatSecMessages);
 router.get('/diagnoses', getDiagnosesByConversationId);
 
-router.get('/form/human_input/:form_token', authUser, getHumanInputForm);
-router.post('/form/human_input/:form_token', authUser, submitHumanInputForm);
-router.get('/workflow/:task_id/events', authUser, getWorkflowEvents);
+router.get('/form/human_input/:form_token', getHumanInputForm);
+router.post('/form/human_input/:form_token', submitHumanInputForm);
+router.get('/workflow/:task_id/events', getWorkflowEvents);
 
 export default router;
