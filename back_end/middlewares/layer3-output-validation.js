@@ -52,6 +52,10 @@ const LEAK_PATTERNS = [
   /secret\s*[:=]\s*\S{8,}/i,
   /token\s*[:=]\s*[a-zA-Z0-9\-_\.]{20,}/i,
 
+  // Tài khoản / Mật khẩu hệ thống
+  /(tài\s*khoản|username|mật\s*khẩu|password).*admin/i,
+  /admin\s*[\/\-:]\s*(admin|12345|password|admin123)/i,
+
   // LLM bị thao túng
   /developer\s+mode\s+(enabled|activated)/i,
   /i\s+am\s+now\s+dan/i,
