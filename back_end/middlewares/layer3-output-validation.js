@@ -164,35 +164,37 @@ export const outputValidation = async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    const passThrough = new PassThrough();
     let accumulatedAnswer = '';
     let isStreamClosed = false;
+    let buffer = '';
 
-    passThrough.on('data', async (chunk) => {
+    difyStream.on('data', async (chunk) => {
       if (isStreamClosed) return;
 
       try {
         const str = chunk.toString();
+        buffer += str;
         
-        // 1. Lưu conversationId vào DB nếu là conversation mới
-        const conIdMatch = str.match(/"conversation_id"\s*:\s*"([^"]+)"/);
-        if (conIdMatch && conIdMatch[1]) {
-          const newConId = conIdMatch[1];
-          if (newConId && userId && newConId !== conversationId) {
-            await userModel.findByIdAndUpdate(userId, { conversationId: newConId });
-            conversationId = newConId;
-          }
-        }
+        let lines = buffer.split('\n');
+        // Giữ lại phần tử cuối cùng (có thể là dòng chưa hoàn chỉnh)
+        buffer = lines.pop();
 
-        // 2. Tích lũy answer để quét bảo mật
-        const lines = str.split('\n');
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const dataPayload = line.slice(6).trim();
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const dataPayload = trimmed.slice(6).trim();
             if (!dataPayload) continue;
 
             try {
               const data = JSON.parse(dataPayload);
+              
+              // 1. Lưu conversationId vào DB nếu là conversation mới
+              if (data.conversation_id && data.conversation_id !== conversationId) {
+                conversationId = data.conversation_id;
+                if (userId) {
+                  await userModel.findByIdAndUpdate(userId, { conversationId });
+                }
+              }
               
               // Kiểm tra intent từ Dify
               if (data.intent === 'prompt_injection') {
@@ -206,9 +208,9 @@ export const outputValidation = async (req, res) => {
                   risk: { label: 'HIGH', level: '3' },
                 });
                 await deleteConversation(conversationId, userId);
-                res.write(`data: ${JSON.stringify({ event: 'error', message: 'Yêu cầu không hợp lệ.' })}\n\n`);
+                res.write(`data: ${JSON.stringify({ event: 'error', status: 400, code: 'prompt_injection', message: 'Yêu cầu không hợp lệ.' })}\n\n`);
                 isStreamClosed = true;
-                passThrough.destroy();
+                difyStream.destroy();
                 res.end();
                 return;
               }
@@ -234,18 +236,33 @@ export const outputValidation = async (req, res) => {
             risk,
           });
           await deleteConversation(conversationId, userId);
-          res.write(`data: ${JSON.stringify({ event: 'error', message: 'Không thể cung cấp thông tin này.' })}\n\n`);
+          res.write(`data: ${JSON.stringify({ event: 'error', status: 400, code: 'output_leak', message: 'Không thể cung cấp thông tin này.' })}\n\n`);
           isStreamClosed = true;
-          passThrough.destroy();
+          difyStream.destroy();
           res.end();
           return;
         }
+
+        // Nếu không có vi phạm ở chunk này, trả về cho client
+        res.write(chunk);
       } catch (err) {
         console.error("Error in streaming outputValidation:", err);
       }
     });
 
-    difyStream.pipe(passThrough).pipe(res);
+    difyStream.on('end', () => {
+      if (!isStreamClosed) {
+        res.end();
+      }
+    });
+
+    difyStream.on('error', (err) => {
+      if (!isStreamClosed) {
+        console.error("Dify stream error:", err.message);
+        res.end();
+      }
+    });
+
     return;
   }
 
