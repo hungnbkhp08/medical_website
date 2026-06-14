@@ -8,7 +8,7 @@ import { AppContext } from '../context/AppContext';
 const parseInline = (text, isUser = false) => {
   if (!text) return '';
   const parts = [];
-  const regex = /(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g;
+  const regex = /(\[[^\]]+\]\([^)]+\)|`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g;
   let match;
   let lastIndex = 0;
   while ((match = regex.exec(text)) !== null) {
@@ -16,7 +16,22 @@ const parseInline = (text, isUser = false) => {
       parts.push(text.slice(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith('`') && token.endsWith('`')) {
+    if (token.startsWith('[') && token.includes('](')) {
+      const closingBracket = token.indexOf('](');
+      const linkText = token.slice(1, closingBracket);
+      const url = token.slice(closingBracket + 2, -1);
+      parts.push(
+        <a 
+          key={match.index} 
+          href={url} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-blue-500 hover:text-blue-700 underline font-medium"
+        >
+          {linkText}
+        </a>
+      );
+    } else if (token.startsWith('`') && token.endsWith('`')) {
       parts.push(
         <code 
           key={match.index} 
@@ -354,9 +369,6 @@ const Chatbot = () => {
 
   const handleResumeWorkflow = async (taskId) => {
     setIsLoading(true);
-    
-    // Thêm một tin nhắn rỗng từ trợ lý để chuẩn bị nhận text stream
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
         const response = await fetch(`${backendUrl}/api/chatbot/workflow/${taskId}/events?user=${userData ? userData._id : "guest-user"}&continue_on_pause=true`, {
@@ -392,12 +404,10 @@ const Chatbot = () => {
                             const eventData = JSON.parse(dataPayload);
                             
                             if (eventData.event === 'error') {
+                                setIsLoading(false);
                                 setMessages(prev => {
                                     const nextMsgs = [...prev];
-                                    const last = nextMsgs[nextMsgs.length - 1];
-                                    if (last && last.role === 'assistant' && last.type !== 'human_input') {
-                                        last.content = eventData.message || eventData.code || 'Lỗi xử lý từ máy chủ Dify.';
-                                    }
+                                    nextMsgs.push({ role: 'assistant', content: eventData.message || eventData.code || 'Lỗi xử lý từ máy chủ Dify.' });
                                     return nextMsgs;
                                 });
                                 break;
@@ -405,12 +415,15 @@ const Chatbot = () => {
 
                             // 1. Nhận chunk văn bản
                             if ((eventData.event === 'text_chunk' && eventData.data?.text) || (eventData.event === 'node_chunk' && eventData.data?.text) || (eventData.event === 'message' && eventData.answer)) {
+                                setIsLoading(false);
                                 setMessages(prev => {
                                     const nextMsgs = [...prev];
                                     const last = nextMsgs[nextMsgs.length - 1];
+                                    const text = eventData.event === 'message' ? eventData.answer : eventData.data.text;
                                     if (last && last.role === 'assistant' && last.type !== 'human_input') {
-                                        const text = eventData.event === 'message' ? eventData.answer : eventData.data.text;
                                         last.content = (last.content || '') + text;
+                                    } else {
+                                        nextMsgs.push({ role: 'assistant', content: text });
                                     }
                                     return nextMsgs;
                                 });
@@ -699,7 +712,7 @@ const Chatbot = () => {
                     </div>
                   )}
                   <div
-                    className={`max-w-[70%] text-sm leading-relaxed ${
+                    className={`max-w-[70%] text-sm leading-relaxed break-words ${
                       msg.role === 'user'
                         ? 'p-4 rounded-2xl shadow-sm bg-blue-600 text-white rounded-br-sm'
                         : msg.type === 'human_input'
