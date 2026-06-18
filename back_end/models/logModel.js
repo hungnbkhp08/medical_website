@@ -12,7 +12,10 @@ const logSchema = new mongoose.Schema({
   rule_id:        { type: String },   // LAYER1_PROMPT_INJECTION | LAYER3_* | LAYER4_HITL
   severity:       { type: String },
   severity_label: { type: String },
-  source:         { type: String },   // IP
+  source:         { type: String },   // IP — nguồn: 'X-Forwarded-For', 'X-Real-IP', 'remoteAddress', 'CF-Connecting-IP'
+  isProxied:      { type: Boolean, default: false },
+  ipSpoofed:      { type: Boolean, default: false },
+  remoteAddr:     { type: String,  default: null },  // IP kết nối trực tiếp (không spoof được)
 
   // ── Field mở rộng cho LAYER4_HITL ──────────────────────────────
   status:         { type: String, enum: ['pending', 'approved', 'rejected'], default: null },

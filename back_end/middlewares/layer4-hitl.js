@@ -23,6 +23,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import logModel from '../models/logModel.js';
 import userModel from '../models/userModel.js';
+import { getClientIP } from '../utils/getClientIP.js';
 // ──────────────────────────────────────────────────────────────────
 // CONFIG
 // ──────────────────────────────────────────────────────────────────
@@ -86,9 +87,8 @@ function assessRisk(query) {
 export const hitlCheck = async (req, res, next) => {
   const { query, user = 'web-user', userId } = req.body;
   const userIdForLog = req.user?.id ?? req.user?._id ?? req.user?.user_id ?? userId ?? 'anonymous';
-  const source = req.headers['x-forwarded-for']?.split(',')[0].trim()
-    ?? req.socket?.remoteAddress
-    ?? 'unknown';
+  const clientInfo = getClientIP(req);
+  const source = clientInfo.ip;
 
   const { score, risk, reasons } = assessRisk(query);
 
@@ -118,7 +118,10 @@ export const hitlCheck = async (req, res, next) => {
       unique_id:      uuidv4(),
       created_at:     new Date(),
       user_id:        userIdForLog,
-      source,
+      source:         clientInfo.ip,
+      isProxied:      clientInfo.isProxied,
+      ipSpoofed:      clientInfo.spoofed,
+      remoteAddr:     clientInfo.remoteAddress,
       data:           query,
       msg:            reasons.join(' | '),
       rule_id:        'LAYER4_HITL',

@@ -23,6 +23,7 @@
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 import logModel from '../models/logModel.js';
+import { getClientIP } from '../utils/getClientIP.js';
 
 // ──────────────────────────────────────────────────────────────────
 // CONFIG — chỉnh tại đây
@@ -84,13 +85,16 @@ function formatTTL(seconds) {
   return `${seconds} giây`;
 }
 
-async function saveLog({ userId, source, msg, ruleId, severity, severityLabel }) {
+async function saveLog({ userId, clientInfo, msg, ruleId, severity, severityLabel }) {
   try {
     await logModel.create({
       unique_id:      uuidv4(),
       created_at:     new Date(),
       user_id:        userId,
-      source,
+      source:         clientInfo?.ip ?? 'unknown',
+      isProxied:      clientInfo?.isProxied ?? false,
+      ipSpoofed:      clientInfo?.spoofed ?? false,
+      remoteAddr:     clientInfo?.remoteAddress ?? null,
       data:           `Rate limit exceeded — user_id: ${userId}`,
       msg,
       rule_id:        ruleId,
@@ -164,9 +168,8 @@ async function checkRateLimit(userId) {
 // ──────────────────────────────────────────────────────────────────
 export const rateLimiter = async (req, res, next) => {
    const { userId } = req.body;
-  const source = req.headers['x-forwarded-for']?.split(',')[0].trim()
-    ?? req.socket?.remoteAddress
-    ?? 'unknown';
+  const clientInfo = getClientIP(req);
+  const source = clientInfo.ip;
 
   // authUser chưa chạy hoặc không có token → skip rate limit
   // (route này yêu cầu đặt authUser trước rateLimiter)
@@ -204,7 +207,7 @@ export const rateLimiter = async (req, res, next) => {
     if (!isRepeat) {
       saveLog({
         userId,
-        source,
+        clientInfo,
         msg,
         ruleId:        'LAYER5_RATE_LIMIT',
         severity:      blockNum >= 3 ? '4' : blockNum >= 2 ? '3' : '2',
