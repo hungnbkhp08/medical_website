@@ -131,7 +131,7 @@ function heuristicCheck(text) {
   }
 
   // 4. URL-encoded payload
-  if (/%[0-9a-fA-F]{2}{5,}/.test(text)) {
+  if (/((%[0-9a-fA-F]{2}){5,})/.test(text)) {
     reasons.push('URL-encoded payload phát hiện');
     score += 3;
   }
