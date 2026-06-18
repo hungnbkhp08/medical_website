@@ -125,7 +125,7 @@ function heuristicCheck(text) {
   }
 
   // 3. Long consecutive special chars
-  if (/(?:[^\w\sÀ-ỳ])\{20,\}/.test(text)) {
+  if (/(?:[^\w\sÀ-ỳ]){20,}/.test(text)) {
     reasons.push('Dãy ký tự đặc biệt dài bất thường');
     score += 2;
   }
@@ -137,7 +137,7 @@ function heuristicCheck(text) {
   }
 
   // 5. Unicode escape sequence
-  if (/\\u[0-9a-fA-F]{4}{3,}/.test(text)) {
+  if (/(\\u[0-9a-fA-F]{4}){3,}/.test(text)) {
     reasons.push('Unicode escape sequence phát hiện');
     score += 3;
   }
