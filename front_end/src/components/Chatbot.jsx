@@ -517,6 +517,16 @@ const Chatbot = () => {
         throw new Error('Lỗi kết nối tới máy chủ');
       }
 
+      // Layer 4 (HITL): server trả về 202 → request đang chờ xét duyệt
+      if (response.status === 202) {
+        const json = await response.json();
+        setMessages(prev => [
+          ...prev,
+          { role: 'assistant', content: json.message || 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn lúc này.' }
+        ]);
+        return;
+      }
+
       setMessages(prev => {
         setAnimatingIndex(prev.length);
         return [...prev, { role: 'assistant', content: '' }];
@@ -543,13 +553,13 @@ const Chatbot = () => {
               try {
                 const eventData = JSON.parse(dataPayload);
 
-                // 1. Nhận lỗi
+                // 1. Nhận lỗi (Layer 3 output_leak hoặc lỗi khác từ server)
                 if (eventData.event === 'error') {
                   setMessages(prev => {
                     const nextMsgs = [...prev];
                     const last = nextMsgs[nextMsgs.length - 1];
                     if (last && last.role === 'assistant' && last.type !== 'human_input') {
-                      last.content = eventData.message || 'Xin lỗi, có lỗi xảy ra.';
+                      last.content = 'Xin lỗi, tôi không thể trả lời câu hỏi của bạn lúc này.';
                     }
                     return nextMsgs;
                   });
