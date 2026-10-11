@@ -535,9 +535,10 @@ const Chatbot = () => {
       const reader = response.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let done = false;
+      let stopped = false; // Flag thoát vòng while khi gặp lỗi từ Layer 3
       let buffer = '';
 
-      while (!done) {
+      while (!done && !stopped) {
         const { value, done: readerDone } = await reader.read();
         done = readerDone;
         if (value) {
@@ -563,6 +564,7 @@ const Chatbot = () => {
                     }
                     return nextMsgs;
                   });
+                  stopped = true; // Thoát cả vòng while, không đọc chunk nào thêm
                   break;
                 }
 
