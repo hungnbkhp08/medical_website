@@ -287,6 +287,7 @@ export const outputValidation = async (req, res) => {
 
     let accumulatedAnswer = '';
     let isStreamClosed = false;
+    let isLogSaved = false; // ← Flag chống duplicate log
     let buffer = '';
 
     difyStream.on('data', async (chunk) => {
@@ -329,14 +330,18 @@ export const outputValidation = async (req, res) => {
         const { isViolation, risk, reasons } = analyzeOutput(accumulatedAnswer);
         if (isViolation) {
           console.warn(`[Layer3] BLOCKED output | user_id=${userId} | ${reasons.join(' | ')}`);
-          await saveLog({
-            userId,
-            clientInfo,
-            data: accumulatedAnswer.slice(0, 500),
-            msg: reasons.join(' | '),
-            ruleId: 'LAYER3_OUTPUT_LEAK',
-            risk,
-          });
+          // Chỉ ghi log 1 lần duy nhất, tránh duplicate khi nhiều chunk vi phạm
+          if (!isLogSaved) {
+            isLogSaved = true;
+            await saveLog({
+              userId,
+              clientInfo,
+              data: accumulatedAnswer.slice(0, 500),
+              msg: reasons.join(' | '),
+              ruleId: 'LAYER3_OUTPUT_LEAK',
+              risk,
+            });
+          }
           await deleteConversation(conversationId, userId);
           res.write(`data: ${JSON.stringify({ event: 'error', status: 400, code: 'output_leak', message: 'Không thể cung cấp thông tin này.' })}\n\n`);
           isStreamClosed = true;
@@ -376,7 +381,7 @@ export const outputValidation = async (req, res) => {
   const { isViolation, risk, reasons } = analyzeOutput(answer);
   if (isViolation) {
     console.warn(`[Layer3] BLOCKED output | user_id=${userId} | ${reasons.join(' | ')}`);
-    saveLog({
+    await saveLog({
       userId,
       clientInfo,
       data:   answer.slice(0, 500),
