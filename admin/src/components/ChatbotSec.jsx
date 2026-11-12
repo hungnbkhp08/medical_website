@@ -265,8 +265,6 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
             let done = false;
             let buffer = '';
 
-            setIsLoading(false);
-
             while (!done) {
                 const { value, done: readerDone } = await reader.read();
                 done = readerDone;
@@ -283,13 +281,43 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
 
                             try {
                                 const data = JSON.parse(dataPayload);
-                                if (data.event === 'message' || data.event === 'agent_message') {
+
+                                // Nhận chunk văn bản — hỗ trợ cả 3 event type của Dify
+                                if (
+                                    (data.event === 'message' || data.event === 'agent_message') && data.answer
+                                ) {
+                                    setIsLoading(false);
                                     setMessages((prev) => {
                                         const newMsgs = [...prev];
                                         const lastIdx = newMsgs.length - 1;
                                         newMsgs[lastIdx] = {
                                             ...newMsgs[lastIdx],
-                                            text: newMsgs[lastIdx].text + (data.answer || '')
+                                            text: newMsgs[lastIdx].text + data.answer
+                                        };
+                                        return newMsgs;
+                                    });
+                                } else if (data.event === 'text_chunk' && data.data?.text) {
+                                    setIsLoading(false);
+                                    setMessages((prev) => {
+                                        const newMsgs = [...prev];
+                                        const lastIdx = newMsgs.length - 1;
+                                        newMsgs[lastIdx] = {
+                                            ...newMsgs[lastIdx],
+                                            text: newMsgs[lastIdx].text + data.data.text
+                                        };
+                                        return newMsgs;
+                                    });
+                                } else if (data.event === 'message_end' || data.event === 'agent_message_end') {
+                                    setIsLoading(false);
+                                } else if (data.event === 'error') {
+                                    setIsLoading(false);
+                                    setMessages((prev) => {
+                                        const newMsgs = [...prev];
+                                        const lastIdx = newMsgs.length - 1;
+                                        newMsgs[lastIdx] = {
+                                            ...newMsgs[lastIdx],
+                                            text: 'Lỗi kết nối đến máy chủ. Vui lòng thử lại sau.',
+                                            isError: true
                                         };
                                         return newMsgs;
                                     });
@@ -313,6 +341,7 @@ const ChatbotSec = ({ logData, isOpen, setIsOpen }) => {
                 };
                 return newMsgs;
             });
+        } finally {
             setIsLoading(false);
         }
     };

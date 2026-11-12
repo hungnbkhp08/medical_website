@@ -13,7 +13,7 @@ const updateEnvConId = (newConId) => {
 
         if (fs.existsSync(envPath)) {
             let envContent = fs.readFileSync(envPath, 'utf8');
-            const conIdRegExp = /^CON_ID\s*=\s*['"]?[^'"\r\n]*['"]?/m;
+            const conIdRegExp = /^CON_ID\s*=\s*['\"]?[^'"\r\n]*['\"]?/m;
             const newLine = `CON_ID='${newConId}'`;
 
             if (conIdRegExp.test(envContent)) {
@@ -71,16 +71,25 @@ export const sendChatSecMessage = async (req, res, next) => {
 
         const passThrough = new PassThrough();
 
-        // Intercept stream to grab conversation_id on the first chat
+        // Intercept stream to grab conversation_id (buffer across chunks)
+        let secBuffer = '';
+        let conIdFound = false;
         passThrough.on('data', (chunk) => {
+            if (conIdFound) return;
             try {
-                const str = chunk.toString();
-                const match = str.match(/"conversation_id"\s*:\s*"([^"]+)"/);
+                secBuffer += chunk.toString();
+                const match = secBuffer.match(/"conversation_id"\s*:\s*"([^"]+)"/);
                 if (match && match[1]) {
                     const newConId = match[1];
-                    if (newConId && !process.env.CON_ID) {
+                    conIdFound = true;
+                    secBuffer = '';
+                    if (newConId && newConId !== process.env.CON_ID) {
                         updateEnvConId(newConId);
                     }
+                }
+                // Prevent buffer from growing too large
+                if (secBuffer.length > 4096) {
+                    secBuffer = secBuffer.slice(-2048);
                 }
             } catch (err) {
                 console.error("Error parsing stream for conversation_id:", err);
