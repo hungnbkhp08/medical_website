@@ -80,6 +80,23 @@ const AdminContextProvider = (props) => {
       toast.error(error.message);
     }
   };
+  const confirmPayment = async (appointmentId) => {
+    try {
+      const { data } = await axios.post(
+        backendUrl + "/api/payment/simulate-ipn",
+        { appointmentId },
+        { headers: { aToken } },
+      );
+      if (data.success) {
+        toast.success("Xác nhận thanh toán thành công!");
+        getAllAppointment();
+      } else {
+        toast.error(data.message || "Xác nhận thất bại");
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
   const getDashData = async () => {
     try {
       const { data } = await axios.post(
@@ -140,6 +157,7 @@ const AdminContextProvider = (props) => {
     setAppointments,
     getAllAppointment,
     cancelAppointment,
+    confirmPayment,
     dashData,
     getDashData,
     logs,

@@ -269,4 +269,120 @@ const handleIpnForWallet = async (req, res) => {
   }
 };
 
-export { createPayment, handleIpn, handleIpnForWallet, createPaymentForWallet };
+// =====================================================
+// Admin xác nhận thanh toán lịch hẹn (thay thế khi app MoMo test lỗi)
+// Endpoint: POST /api/payment/simulate-ipn
+// Body: { appointmentId }
+// =====================================================
+const simulateIpn = async (req, res) => {
+  try {
+    const { appointmentId } = req.body;
+    if (!appointmentId) {
+      return res.status(400).json({ success: false, message: 'Thiếu appointmentId' });
+    }
+
+    // Cập nhật trạng thái thanh toán
+    const appointment = await appointmentModel.findByIdAndUpdate(
+      appointmentId,
+      { payment: true },
+      { new: true }
+    );
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy lịch hẹn' });
+    }
+
+    // Gửi email xác nhận (giống IPN thật)
+    const userData = await userModel.findById(appointment.userId).select('-password');
+    if (userData?.email) {
+      await sendMail(
+        userData.email,
+        'Xác nhận thanh toán lịch hẹn',
+        null,
+        `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2 style="color: #e74c3c;">Lịch hẹn của bạn đã được thanh toán</h2>
+          <p>Xin chào <strong>${userData.name}</strong>,</p>
+          <p>Chúng tôi xác nhận rằng bạn đã <strong>thanh toán lịch hẹn khám bệnh</strong> với thông tin như sau:</p>
+          <ul>
+            <li><strong>Ngày:</strong> ${appointment.slotDate}</li>
+            <li><strong>Giờ:</strong> ${appointment.slotTime}</li>
+          </ul>
+          <p>Nếu đây là sự nhầm lẫn hoặc bạn cần đặt lại lịch hẹn, vui lòng truy cập website hoặc liên hệ chúng tôi để được hỗ trợ.</p>
+          <p style="margin-top: 20px;">Trân trọng,<br/><em>HealthCare Booking</em></p>
+          <div style="margin-top: 40px; text-align: center;">
+            <img src="https://res.cloudinary.com/dhqgnr8up/image/upload/v1754365138/blog-2020-04-07-how_to_say_thank_you_in_business-Apr-09-2024-05-22-03-0706-PM_f6ltre.webp" alt="HealthCare Logo" style="width: 100%; max-width: 600px; border-radius: 8px;" />
+          </div>
+        </div>
+        `
+      );
+    }
+
+    console.log(`[ADMIN] Xác nhận thanh toán thành công cho appointment: ${appointmentId}`);
+    return res.json({ success: true, message: 'Xác nhận thanh toán thành công', appointment });
+
+  } catch (error) {
+    console.error('[ADMIN] Confirm payment error:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =====================================================
+// [DEV ONLY] Giả lập IPN nạp ví — dùng khi app MoMo test bị lỗi
+// Endpoint: POST /api/payment/simulate-ipn-wallet
+// Body: { docId, amount }
+// =====================================================
+const simulateIpnWallet = async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ success: false, message: 'Chỉ dùng trong môi trường development' });
+  }
+
+  try {
+    const { docId, amount } = req.body;
+    if (!docId || !amount) {
+      return res.status(400).json({ success: false, message: 'Thiếu docId hoặc amount' });
+    }
+
+    const wallet = await walletModel.findOne({ docId });
+    if (!wallet) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy ví' });
+    }
+
+    wallet.balance += Number(amount);
+    await wallet.save();
+
+    const newHistory = new historyWalletModel({
+      walletId: wallet._id,
+      amount: Number(amount)
+    });
+    await newHistory.save();
+
+    // Gửi email xác nhận
+    const docData = await doctorModel.findById(docId).select('-password');
+    if (docData?.email) {
+      await sendMail(
+        docData.email,
+        'Xác nhận thanh toán ví',
+        null,
+        `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2 style="color: #e74c3c;">Thanh toán ví thành công</h2>
+          <p>Xin chào <strong>${docData.name}</strong>,</p>
+          <p>Bạn đã nạp thành công <strong>${Number(amount).toLocaleString('vi-VN')} VNĐ</strong> vào ví của mình.</p>
+          <p>Nếu đây là sự nhầm lẫn, vui lòng truy cập website hoặc liên hệ chúng tôi để được hỗ trợ.</p>
+          <p style="margin-top: 20px;">Trân trọng,<br/><em>HealthCare Booking</em></p>
+        </div>
+        `
+      );
+    }
+
+    console.log(`[DEV] Giả lập nạp ví thành công: docId=${docId}, amount=${amount}`);
+    return res.json({ success: true, message: 'Giả lập nạp ví thành công', balance: wallet.balance });
+
+  } catch (error) {
+    console.error('[DEV] Simulate IPN Wallet error:', error.message);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { createPayment, handleIpn, handleIpnForWallet, createPaymentForWallet, simulateIpn, simulateIpnWallet };
